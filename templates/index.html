@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block head %}
+  <title>Aidan Courtney</title>
+	<script src="index.js"></script>
+{% endblock %}
+{% block body %}
+  <h1>Aidan Courtney</h1>
+  <button data-accordion="contact" class="accordion">Contact +</button>
+  <div data-accordion="contact" class="accordion-content">
+    <ul>
+      <li>631-704-8994</li>
+      <li>contact@aidan.software</li>
+    </ul>
+  </div>
+  <button data-accordion="links" class="accordion">Links +</button>
+  <div data-accordion="links" class="accordion-content">
+    <ul>
+      <li>github</li>
+      <li>linkedin</li>
+    </ul>
+  </div>
+  <button data-accordion="message" class="accordion">Send a message +</button>
+  <div data-accordion="message" class="accordion-content">
+    <form action="/api/messages" method="post">
+      Send a message
+      <button>Send</button>
+    </form>
+  </div>
+{% endblock %}

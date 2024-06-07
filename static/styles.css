@@ -1,0 +1,28 @@
+html {
+  background: black;
+  color: white;
+}
+
+.accordion {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  text-align: left;
+  outline: none;
+}
+
+.accordion-open, .accordion:hover {
+  background: white;
+  color: black;
+}
+
+.accordion-content {
+  padding: 0;
+  display: none;
+  overflow: hidden;
+  background: #555555;
+}
+
+.accordion-content-open {
+  display: block;
+}
