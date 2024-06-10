@@ -1,28 +1,166 @@
 html {
-  background: black;
-  color: white;
+  --text-light: #FEFEFE;
+  --text-dark: #5E5E5E;
+  --primary: purple;
+  --accent-black: black;
+  --accent-dark: #757575;
+  --accent-light: purple;
+  --secondary: #ca03ca;
+  --tertiary: magenta;
+  --success: #04A777;
+  --warning: #FFCB77;
+  --error: #FE6D73;
+  font: 16px monospace;
+}
+
+.bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100dvw;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  z-index: -1;
+  background-image: url("wavey.svg");
+  animation: scrollBackground 10s linear infinite;
+}
+
+@keyframes scrollBackground {
+  0% {
+      background-position: 0% 0%;
+  }
+  100% {
+      background-position: 100% 0%;
+  }
+}
+
+body {
+  background: var(--primary);
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100dvw;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+}
+
+.nameplate {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  background: purple;
+  border-top: 3px solid var(--secondary);
+  border-left: 3px solid var(--secondary);
+  box-shadow: 10px 10px black;
+  width: 100%;
+  height: 100px;
+  margin: 0;
+  padding: 0;
+  margin-bottom: 2rem;
+
+  h1 {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    text-shadow: 5px 5px 2px black;
+  }
+
+  h2 {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    margin: 0;
+    padding: 0;
+    text-align: right;
+    text-shadow: 5px 5px 2px black;
+  }
+}
+
+button {
+  font: 16px monospace;
+}
+
+.frame {
+  min-width: 400px;
+  max-width: 500px;
 }
 
 .accordion {
-  width: 100%;
-  padding: 18px;
-  border: none;
-  text-align: left;
-  outline: none;
-}
-
-.accordion-open, .accordion:hover {
-  background: white;
-  color: black;
-}
-
-.accordion-content {
   padding: 0;
-  display: none;
-  overflow: hidden;
-  background: #555555;
+  margin: 0;
+  width: 100%;
+  box-shadow: var(--accent-black) 10px 10px;
+  border-left: 3px solid var(--secondary);
+  border-top: 3px solid var(--secondary);
+
+  .toggle {
+    background: var(--primary);
+    color: var(--text-light);
+    width: 100%;
+    padding: 18px;
+    border: none;
+    text-align: left;
+    outline: none;
+    position: relative;
+  }
+
+  .toggle:after {
+    position: absolute;
+    display: inline-block;
+    /* font-size: 32px; */
+    content: "+";
+    right: 18px;
+  }
+
+  .toggle:hover {
+    background: var(--secondary);
+  }
+
+  .content {
+    background: var(--tertiary);
+    color: var(--text-light);
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    max-height: 0px;
+    transition: max-height 0.25s ease-in-out;
+  }
+
+  + .accordion {
+    margin-top: 2rem;
+  }
 }
 
-.accordion-content-open {
-  display: block;
+.accordion-open {
+  border-left: 3px solid var(--tertiary);
+
+  .toggle {
+    background: var(--tertiary);
+  }
+
+  .toggle:after {
+    content: "-";
+  }
+
+  .toggle:hover {
+    background: var(--primary);
+  }
+
+  .content {
+    max-height: 100vh;
+  }
+}
+
+.accordion[data-accordion="message"] form {
+  display: grid;
+  padding: 18px;
+  grid-template-columns: 1fr 3fr;
+  gap: 10px;
 }

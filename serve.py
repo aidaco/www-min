@@ -109,8 +109,8 @@ class ContactFormSubmission:
     id: int
     email: str
     message: str
+    received_at: datetime
     phone: str | None = None
-    received_at: datetime = field(default_factory=utcnow)
 
     @classmethod
     def insert(
@@ -120,6 +120,7 @@ class ContactFormSubmission:
         phone: str | None = None,
         received_at: datetime | None = None,
     ) -> Self:
+        received_at = received_at if received_at is not None else utcnow()
         row = query(
             cls.INSERT_ROW,
             (email, message, phone, received_at),
@@ -181,8 +182,8 @@ api = FastAPI()
 
 
 def authenticate(
-    cookie: Annotated[str | None, Cookie(alias="Authorization")],
-    header: Annotated[str | None, Header(alias="Authorization")],
+    cookie: Annotated[str | None, Cookie(alias="Authorization")] = None,
+    header: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> User | None:
     token = cookie or header
     if token is None:
@@ -194,9 +195,16 @@ def authenticate(
         raise LoginRequired("Invalid authentication found.")
 
 
+@api.middleware("http")
+async def log_request(request: Request, call_next):
+    body = await request.body()
+    print(f"Body: {body}")
+    return await call_next(request)
+
+
 @api.exception_handler(LoginRequired)
 def handle_login_required(request: Request, _: LoginRequired):
-    return RedirectResponse(f"/login?next={quote(request.url._url)}")
+    return RedirectResponse(f"/login.html?next={quote(request.url._url)}")
 
 
 @api.post("/api/token")

@@ -1,17 +1,11 @@
-let accordions = document.getElementsByClassName('accordion')
-console.log(accordions)
+let accordions = document.querySelectorAll('.accordion .toggle')
 
 function toggleAccordion(evt) {
   let target = evt.target.dataset.accordion
-  let content = document.querySelector(`.accordion-content[data-accordion="${target}"]`)
-  console.log(evt)
-  console.log(target)
-  console.log(content)
-  evt.target.classList.toggle("accordion-open")
-  content.classList.toggle("accordion-content-open")
+  let accordion = document.querySelector(`.accordion[data-accordion="${target}"]`)
+  accordion.classList.toggle("accordion-open")
 }
 
 for (let accordion of accordions) {
-  console.log(accordion)
   accordion.addEventListener("click", toggleAccordion)
 }
