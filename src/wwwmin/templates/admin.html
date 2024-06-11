@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Admin</title>
+<script src="admin.js"></script>
+{% endblock %}
+{% block body %}
+<div class="bg"></div>
+<div class="table-frame">
+  <h1>Admin</h1>
+  <div class="table-wrapper">
+    <h2>Active</h2>
+    <table>
+      <tr>
+        <th>email</th>
+        <th>phone</th>
+        <th>received_at</th>
+        <th>message</th>
+        <th>archive</th>
+      </tr>
+      {% for submission in active_submissions %}
+      <tr>
+        <td>{{ submission.email }}</td>
+        <td>{{ submission.phone }}</td>
+        <td>{{ submission.received_at }}</td>
+        <td>
+          <pre>{{ submission.message }}</pre>
+        </td>
+        <td>
+          <form action="/api/messages/archive" method="post">
+            <input type="num" name="id" value="{{ submission.id }}" hidden></input>
+            <input type="submit" value="X"></input>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="table-wrapper">
+    <h2>Archived</h2>
+    <table>
+      <tr>
+        <th>email</th>
+        <th>phone</th>
+        <th>received_at</th>
+        <th>message</th>
+        <th>archived_at</th>
+        <th>unarchive</th>
+      </tr>
+      {% for submission in archived_submissions %}
+      <tr>
+        <td>{{ submission.email }}</td>
+        <td>{{ submission.phone }}</td>
+        <td>{{ submission.received_at }}</td>
+        <td>
+          <pre>{{ submission.message }}</pre>
+        </td>
+        <td>{{ submission.archived_at }}"</td>
+        <td>
+          <form action="/api/messages/unarchive" method="post">
+            <input type="num" name="id" value="{{ submission.id }}" hidden></input>
+            <input type="submit" value="X"></input>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

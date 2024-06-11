@@ -1,0 +1,2 @@
+include src/wwwmin/static/*
+include src/wwwmin/templates/*

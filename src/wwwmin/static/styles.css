@@ -3,7 +3,7 @@ html {
   --text-dark: #5E5E5E;
   --primary: purple;
   --accent-black: black;
-  --accent-dark: #757575;
+  --accent-dark: #291032;
   --accent-light: purple;
   --secondary: #ca03ca;
   --tertiary: magenta;
@@ -28,10 +28,11 @@ html {
 
 @keyframes scrollBackground {
   0% {
-      background-position: 0% 0%;
+    background-position: 0% 0%;
   }
+
   100% {
-      background-position: 100% 0%;
+    background-position: 100% 0%;
   }
 }
 
@@ -92,6 +93,33 @@ button {
   max-width: 500px;
 }
 
+.login-card {
+  min-width: 500px;
+  max-width: 750px;
+  background: var(--accent-dark);
+
+  h1 {
+    margin: 18px;
+  }
+}
+
+.table-frame {
+  min-width: 500px;
+  max-width: calc(100% - 40px);
+  background: var(--accent-light);
+
+  h1 {
+    margin: 10px;
+  }
+}
+
+.table-wrapper {
+  width: calc(100% - 40px);
+  padding: 10px;
+  margin: 10px;
+  background: var(--accent-dark);
+}
+
 .accordion {
   padding: 0;
   margin: 0;
@@ -103,6 +131,7 @@ button {
   .toggle {
     background: var(--primary);
     color: var(--text-light);
+    font-weight: bold;
     width: 100%;
     padding: 18px;
     border: none;
@@ -114,9 +143,11 @@ button {
   .toggle:after {
     position: absolute;
     display: inline-block;
-    /* font-size: 32px; */
+    font-size: 24px;
+    font-weight: bold;
     content: "+";
     right: 18px;
+    top: 12px;
   }
 
   .toggle:hover {
@@ -124,7 +155,7 @@ button {
   }
 
   .content {
-    background: var(--tertiary);
+    background: var(--secondary);
     color: var(--text-light);
     padding: 0;
     margin: 0;
@@ -133,16 +164,16 @@ button {
     transition: max-height 0.25s ease-in-out;
   }
 
-  + .accordion {
+  +.accordion {
     margin-top: 2rem;
   }
 }
 
 .accordion-open {
-  border-left: 3px solid var(--tertiary);
+  border-left: 3px solid var(--primary);
 
   .toggle {
-    background: var(--tertiary);
+    background: var(--secondary);
   }
 
   .toggle:after {
@@ -158,9 +189,55 @@ button {
   }
 }
 
-.accordion[data-accordion="message"] form {
+form {
   display: grid;
   padding: 18px;
   grid-template-columns: 1fr 3fr;
   gap: 10px;
+}
+
+table {
+  border: 1px solid var(--secondary);
+  width: 100%;
+}
+
+th,
+td {
+  border: 2px solid var(--secondary);
+  padding: 4px;
+  background: var(--accent-dark);
+}
+
+label {
+  background: var(--primary);
+  border: 3px solid var(--accent-black);
+  align-self: start;
+  padding: 10px;
+  font-weight: bold;
+}
+
+input,
+textarea {
+  background: var(--primary);
+  font: 1.25rem monospace;
+  font-weight: bold;
+  color: var(--text-light);
+  border: 3px solid var(--accent-black);
+}
+
+::placeholder {
+  font: italic 1rem monospace;
+  color: var(--text-light);
+}
+
+textarea:hover,
+textarea:focus,
+input:hover,
+input:focus {
+  border: 3px solid var(--tertiary);
+  background: var(--accent-dark);
+}
+
+form input[type="submit"] {
+  grid-column: 1 / span 2;
 }

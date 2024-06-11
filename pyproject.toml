@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wwwmin"
+version = "0.0.1-beta"
+description = "Frontend & backend for https://aidan.software"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {file = "LICENSE.txt"}
+keywords = ["portfolio", "professional", "website"]
+authors = [
+  {name = "Aidan Courtney", email = "contact@aidan.software" }
+]
+dependencies = [
+  "fastapi",
+  "python-multipart",
+  "uvicorn",
+  "PyJWT",
+  "argon2-cffi"
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy"]
+test = ["pytest", "coverage"]
+
+[project.urls]
+"Homepage" = "https://aidan.software"
+"Source" = "https://github.com/aidaco/www-min/"
+
+[project.scripts]
+wwwmin-serve = "wwwmin.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
