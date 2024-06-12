@@ -1,14 +1,19 @@
 {% extends "base.html" %}
 {% block head %}
+<script defer src="index.js"></script>
+<script defer src="admin.js"></script>
 <title>Admin</title>
-<script src="admin.js"></script>
 {% endblock %}
 {% block body %}
-<div class="bg"></div>
-<div class="table-frame">
+<div class="background"></div>
+
+<div class="card">
   <h1>Admin</h1>
-  <div class="table-wrapper">
-    <h2>Active</h2>
+</div>
+
+<div class="card accordion accordion-open" data-accordion="active">
+  <button class="toggle" data-accordion="active">Active</button>
+  <div class="content" data-accordion="active">
     <table>
       <tr>
         <th>email</th>
@@ -35,8 +40,11 @@
       {% endfor %}
     </table>
   </div>
-  <div class="table-wrapper">
-    <h2>Archived</h2>
+</div>
+
+<div class="card accordion" data-accordion="archived">
+  <button class="toggle" data-accordion="archived">Archived</button>
+  <div class="content" data-accordion="archived">
     <table>
       <tr>
         <th>email</th>
@@ -64,6 +72,13 @@
       </tr>
       {% endfor %}
     </table>
+  </div>
+</div>
+
+<div class="card accordion" data-accordion="settings">
+  <button class="toggle" data-accordion="settings">Settings</button>
+  <div class="content" data-accordion="settings">
+    <button class="push-subscribe">Subscribe to web push notifications</button>
   </div>
 </div>
 {% endblock %}

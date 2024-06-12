@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Iterator, Self
 from datetime import datetime, timezone
 from contextlib import contextmanager
+import json
 
 try:
     import pysqlite3 as sqlite3  # type: ignore
@@ -201,5 +202,48 @@ class User(Table):
     def by_name(cls, username: str) -> Self | None:
         row = cls.database.query(
             "SELECT * FROM user WHERE username=:username", username=username
+        ).fetchone()
+        return cls(**row) if row is not None else None
+
+
+class WebPushSubcription(Table):
+    CREATE_TABLE: ClassVar[str] = """
+        CREATE TABLE IF NOT EXISTS web_push_subscription(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES user(id) ON UPDATE CASCADE ON DELETE CASCADE,
+            subscription JSONB NOT NULL,
+            subscribed_at DATETIME NOT NULL
+        )
+    """
+    INSERT_ROW: ClassVar[str] = """
+        INSERT INTO web_push_subscription(user_id, subscription, subscribed_at) 
+        VALUES (:user_id, :subscription, :subscribed_at)
+        RETURNING *
+    """
+    GET_ROW: ClassVar[str] = "SELECT * FROM web_push_subscription WHERE id=:id"
+    ITER_ROWS: ClassVar[str] = "SELECT * FROM web_push_subscription"
+    id: int
+    user_id: int
+    subscription: str
+    subscribed_at: datetime
+
+    @classmethod
+    def insert(
+        cls,
+        user_id: int,
+        subscription: dict,
+        subscribed_at: datetime | None = None,
+    ) -> Self:
+        return super().insert(
+            user_id=user_id,
+            subscription=json.dumps(subscription).encode(),
+            subscribed_at=subscribed_at if subscribed_at is not None else utcnow(),
+        )
+
+    @classmethod
+    def by_user_id(cls, user_id: int) -> Self | None:
+        row = cls.database.query(
+            "SELECT * FROM web_push_subscription WHERE user_id=:user_id",
+            user_id=user_id,
         ).fetchone()
         return cls(**row) if row is not None else None

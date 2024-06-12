@@ -4,17 +4,17 @@
 <script src="login.js"></script>
 {% endblock %}
 {% block body %}
-<div class="bg"></div>
-<div class="login-card">
+<div class="background"></div>
+<div class="card">
   <h1>Login</h1>
   <form action="/api/token" method="post">
 
     <label for="username">username</label>
-    <input type="text" name="username"></input>
+    <input type="text" name="username" placeholder="username"></input>
 
 
     <label for="password">password</label>
-    <input type="password" name="password"></textarea>
+    <input type="password" name="password" placeholder="password"></textarea>
 
     <input type="text" name="next" value="{{ next_url }}" hidden></input>
     <input type="submit" value="Submit"></input>

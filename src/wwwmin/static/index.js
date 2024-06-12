@@ -1,11 +1,15 @@
-let accordions = document.querySelectorAll('.accordion .toggle')
-
-function toggleAccordion(evt) {
-  let target = evt.target.dataset.accordion
-  let accordion = document.querySelector(`.accordion[data-accordion="${target}"]`)
-  accordion.classList.toggle("accordion-open")
+for (let accordionToggle of document.querySelectorAll('.accordion .toggle')) {
+  accordionToggle.addEventListener("click", function(e) {
+    e.stopPropagation()
+    document.querySelector(`.accordion[data-accordion="${this.dataset.accordion}"]`).classList.toggle("accordion-open")
+  })
 }
 
-for (let accordion of accordions) {
-  accordion.addEventListener("click", toggleAccordion)
+for (let accordion of document.querySelectorAll('.accordion')) {
+  accordion.addEventListener("click", function(e) {
+    if (e.target.classList.contains("accordion") || e.target.classList.contains("toggle") || e.target.classList.contains("content")) {
+      document.querySelector(`.toggle[data-accordion="${this.dataset.accordion}"]`).click()
+    }
+  })
 }
+
