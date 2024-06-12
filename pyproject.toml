@@ -19,7 +19,7 @@ dependencies = [
   "uvicorn",
   "PyJWT",
   "argon2-cffi",
-  "pysqlite-binary",
+  "pysqlite3-binary",
   "pywebpush",
   "py_vapid"
 ]
