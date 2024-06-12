@@ -27,6 +27,12 @@ body {
   align-content: center;
 }
 
+@media screen and (max-width: 600px) {
+  body {
+    grid-template-columns: [left] 10px [left-main] 8fr [right-main] 10px [right];
+  }
+}
+
 button {
   font: 24px monospace;
   border: 2px solid var(--accent-dark);

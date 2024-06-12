@@ -18,7 +18,10 @@ dependencies = [
   "python-multipart",
   "uvicorn",
   "PyJWT",
-  "argon2-cffi"
+  "argon2-cffi",
+  "pysqlite-binary",
+  "pywebpush",
+  "py_vapid"
 ]
 
 [project.optional-dependencies]
