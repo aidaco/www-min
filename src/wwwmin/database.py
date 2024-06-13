@@ -39,10 +39,10 @@ class TableMeta(type):
 class Table(metaclass=TableMeta, init=False):
     database: "Database"
     NAME: str
-    CREATE_TABLE: str
-    INSERT_ROW: str
-    GET_ROW: str = "SELECT * FROM {name} WHERE id=:id"
-    ITER_ROWS: str = "SELECT * FROM {name}"
+    CREATE_TABLE: ClassVar[str]
+    INSERT_ROW: ClassVar[str]
+    GET_ROW: ClassVar[str] = "SELECT * FROM {name} WHERE id=:id"
+    ITER_ROWS: ClassVar[str] = "SELECT * FROM {name}"
 
     @classmethod
     def parse(cls, row: sqlite3.Row) -> Self:
@@ -107,8 +107,8 @@ class Database(metaclass=DatabaseMeta):
         sqlite3.register_converter(
             "datetime", lambda b: datetime.fromisoformat(b.decode("utf-8"))
         )
-        self._connection.row_factory = sqlite3.Row
-        self._connection.executescript("""
+        self.connection.row_factory = sqlite3.Row
+        self.connection.executescript("""
             pragma journal_mode = WAL;
             pragma synchronous = normal;
             pragma temp_store = memory;
@@ -137,6 +137,13 @@ class Database(metaclass=DatabaseMeta):
             cursor = self.connection.cursor()
             cursor.execute("BEGIN")
             yield cursor
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.connection.close()
 
 
 class ContactFormSubmission(Table):
@@ -232,8 +239,6 @@ class User(Table):
         VALUES (:username, :password)
         RETURNING *
     """
-    GET_ROW: ClassVar[str] = "SELECT * FROM user WHERE id=:id"
-    ITER_ROWS: ClassVar[str] = "SELECT * FROM user"
     id: int
     username: str
     password_hash: str
@@ -260,8 +265,6 @@ class WebPushSubcription(Table):
         VALUES (:user_id, :subscription, :subscribed_at)
         RETURNING *
     """
-    GET_ROW: ClassVar[str] = "SELECT * FROM web_push_subscription WHERE id=:id"
-    ITER_ROWS: ClassVar[str] = "SELECT * FROM web_push_subscription"
     id: int
     user_id: int
     subscription: str
@@ -287,3 +290,10 @@ class WebPushSubcription(Table):
             user_id=user_id,
         ).fetchone()
         return cls(**row) if row is not None else None
+
+
+class WWWMINDatabase(Database):
+    uri: str = DB_URI
+    contact_form_submissions = ContactFormSubmission
+    users = User
+    web_push_subscription = WebPushSubcription

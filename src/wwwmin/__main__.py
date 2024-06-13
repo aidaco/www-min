@@ -1,17 +1,13 @@
 from . import server, database
+from rich import print
 
 
 def main():
-    db = database.Database(
-        uri="db.sqlite3",
-        tables={
-            database.ContactFormSubmission,
-            database.User,
-            database.WebPushSubcription,
-        },
-    )
-    db.db()
-    server.serve()
+    try:
+        with database.WWWMINDatabase() as db:
+            server.serve()
+    except KeyboardInterrupt:
+        print("[red]Stopped.[/]")
 
 
 if __name__ == "__main__":

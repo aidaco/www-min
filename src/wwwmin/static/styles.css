@@ -40,6 +40,22 @@ button {
   color: var(--text-light);
 }
 
+a {
+  color: var(--text-light);
+  text-shadow: 0 0 5px var(--secondary);
+  animation: glowing 5s linear alternate infinite;
+}
+
+@keyframes glowing {
+  0% {
+    text-shadow: 0 0 0px var(--secondary);
+  }
+
+  100% {
+    text-shadow: 0 0 10px var(--secondary);
+  }
+}
+
 button:hover {
   border: 2px solid var(--accent-light);
   background: var(--secondary);
