@@ -21,7 +21,7 @@ import py_vapid
 from pywebpush import webpush, WebPushException
 
 from wwwmin.database import User, ContactFormSubmission, WebPushSubcription
-from . import security
+from . import security, github_webhook
 import wwwmin.static
 import wwwmin.templates
 
@@ -58,13 +58,6 @@ async def send_notification(submission: ContactFormSubmission):
                     extra.errno,
                     extra.message,
                 )
-
-
-@api.middleware("http")
-async def log_request(request: Request, call_next):
-    body = await request.body()
-    print(f"Body: {body}")
-    return await call_next(request)
 
 
 @api.exception_handler(security.LoginRequired)
@@ -153,6 +146,9 @@ async def register_web_push_subscription(
 ):
     print(user, subscription)
     WebPushSubcription.insert(user_id=user.id, subscription=subscription)
+
+
+api.include_router(github_webhook.api)
 
 
 @api.get("/", response_class=HTMLResponse)

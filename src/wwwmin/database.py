@@ -1,9 +1,10 @@
 import sqlite3
 from dataclasses import dataclass, field
-from typing import ClassVar, Iterator, Self
+from typing import ClassVar, Iterator, Self, Protocol
 from datetime import datetime, timezone
 from contextlib import contextmanager
 import json
+import re
 
 try:
     import pysqlite3 as sqlite3  # type: ignore
@@ -16,28 +17,47 @@ DB_URI = "db.sqlite3"
 
 
 class TableMeta(type):
-    def __new__(cls, name, bases, dct):
+    database: "Database"
+
+    def __new__(cls, name, bases, dct, init=True):
         inst = super().__new__(cls, name, bases, dct)
-        if name != "Table":
+        if init:
             inst = dataclass(inst)  # type: ignore
         return inst
 
+    def __get__(cls, owner, owner_cls):
+        return type(
+            f"BoundTable<{cls.__name__}>",
+            (cls,),
+            {
+                "database": owner,
+                "NAME": getattr(cls, "NAME", owner_cls.default_name(cls)),
+            },
+        )
 
-class Table(metaclass=TableMeta):
+
+class Table(metaclass=TableMeta, init=False):
     database: "Database"
-    CREATE_TABLE: ClassVar[str]
-    INSERT_ROW: ClassVar[str]
-    GET_ROW: ClassVar[str]
-    ITER_ROWS: ClassVar[str]
+    NAME: str
+    CREATE_TABLE: str
+    INSERT_ROW: str
+    GET_ROW: str = "SELECT * FROM {name} WHERE id=:id"
+    ITER_ROWS: str = "SELECT * FROM {name}"
+
+    @classmethod
+    def parse(cls, row: sqlite3.Row) -> Self:
+        return cls(**row)
 
     @classmethod
     def iter(cls) -> list[Self]:
-        return [cls(**row) for row in cls.database.query(cls.ITER_ROWS)]
+        return [
+            cls.parse(row)
+            for row in cls.database.query(cls.ITER_ROWS.format(name=cls.NAME))
+        ]
 
     @classmethod
-    def create(cls, database: "Database") -> None:
-        cls.database = database
-        database.query(cls.CREATE_TABLE)
+    def create(cls) -> None:
+        cls.database.query(cls.CREATE_TABLE)
 
     @classmethod
     def insert(cls, *args, **kwargs) -> Self:
@@ -50,28 +70,45 @@ class Table(metaclass=TableMeta):
         return cls(**row) if row is not None else None
 
 
-@dataclass
-class Database:
-    uri: str = DB_URI
-    connection: sqlite3.Connection | None = None
-    tables: set[type[Table]] = field(default_factory=set)
+class DatabaseMeta(type):
+    def __new__(cls, name, bases, dct):
+        inst = super().__new__(cls, name, bases, dct)
+        inst = dataclass(inst)  # type: ignore
+        return inst
 
-    def db(self) -> sqlite3.Connection:
-        if self.connection is not None:
-            return self.connection
-        self.connection = sqlite3.connect(self.uri, isolation_level=None)
+    def __init__(cls, name, bases, dct):
+        super().__init__(cls)
+
+
+class Database(metaclass=DatabaseMeta):
+    uri: str
+    _connection: sqlite3.Connection | None = None
+
+    @property
+    def tables(self):
+        cls = type(self)
+        return [
+            getattr(self, key)
+            for key, value in vars(cls).items()
+            if isinstance(value, TableMeta)
+        ]
+
+    @property
+    def connection(self) -> sqlite3.Connection:
+        return self._connection or self.connect() or self._connection
+
+    def connect(self):
+        self._connection = sqlite3.connect(self.uri, isolation_level=None)
         self.configure_sqlite()
         self.create_tables()
-        return self.connection
 
     def configure_sqlite(self):
         sqlite3.register_adapter(datetime, datetime.isoformat)
         sqlite3.register_converter(
             "datetime", lambda b: datetime.fromisoformat(b.decode("utf-8"))
         )
-        connection = self.db()
-        connection.row_factory = sqlite3.Row
-        connection.executescript("""
+        self._connection.row_factory = sqlite3.Row
+        self._connection.executescript("""
             pragma journal_mode = WAL;
             pragma synchronous = normal;
             pragma temp_store = memory;
@@ -81,18 +118,23 @@ class Database:
             pragma foreign_keys = on;
         """)
 
+    @classmethod
+    def default_name(
+        cls, table: type[Table], replace_regex=re.compile("(?<!^)(?=[A-Z])")
+    ) -> str:
+        return replace_regex.sub("_", table.__name__).lower()
+
     def create_tables(self):
         for table in self.tables:
-            table.create(self)
+            table.create()
 
     def query(self, sql: str, *args, **kwargs):
-        return self.db().execute(sql, args or kwargs)
+        return self.connection.execute(sql, args or kwargs)
 
     @contextmanager
     def transact(self):
-        connection = self.db()
-        with connection:
-            cursor = connection.cursor()
+        with self.connection:
+            cursor = self.connection.cursor()
             cursor.execute("BEGIN")
             yield cursor
 
@@ -115,14 +157,12 @@ class ContactFormSubmission(Table):
         VALUES (:email, :message, :phone, :received_at, :archived_at)
         RETURNING *
     """
-    GET_ROW: ClassVar[str] = "SELECT * FROM contact_form_submission WHERE id=:id"
-    ITER_ROWS: ClassVar[str] = "SELECT * FROM contact_form_submission"
-    id: int
     email: str
     message: str
-    received_at: datetime
+    received_at: datetime = field(default_factory=utcnow)
     archived_at: datetime | None = None
     phone: str | None = None
+    id: int | None = None
 
     @classmethod
     def insert(

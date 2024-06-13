@@ -1,13 +1,10 @@
 import asyncio
-import contextlib
 import hashlib
 import hmac
 import json
 import os
-import shutil
 import subprocess
 import sys
-from pathlib import Path
 from typing import Annotated
 
 import psutil
@@ -15,6 +12,11 @@ from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 
 
 api = APIRouter()
+
+CD_VCS_PACKAGE_URL = "git+https://github.com/aidaco/www-min"
+CD_CHECK = True
+CD_BRANCH = "main"
+CD_SECRET = "secret value"
 
 
 async def cleanup():
@@ -36,7 +38,8 @@ async def cleanup():
                 pass
 
 
-async def upgrade_and_restart(vcs_url: str = "git+https://github.com/aidaco/www-min"):
+async def upgrade_and_restart(vcs_url: str):
+    await cleanup()
     subprocess.run(
         [sys.executable, "-m", "pip", "install", "--upgrade", vcs_url],
         check=True,
@@ -48,41 +51,31 @@ async def upgrade_and_restart(vcs_url: str = "git+https://github.com/aidaco/www-
 def verify_signature(body: bytes, signature: str, secret: str) -> None:
     if not signature:
         raise HTTPException(status_code=403, detail="Missing payload signature.")
-    expected = (
-        "sha256="
-        + hmac.new(
-            secret.encode("utf-8"),
-            msg=body,
-            digestmod=hashlib.sha256,
-        ).hexdigest()
+    hasher = hmac.new(
+        secret.encode("utf-8"),
+        msg=body,
+        digestmod=hashlib.sha256,
     )
-    if not hmac.compare_digest(expected, signature):
+    if not hmac.compare_digest(f"sha256={hasher.hexdigest()}", signature):
         raise HTTPException(status_code=403, detail="Failed to verify signature.")
 
 
-def verify_branch(body: bytes, branch: str | None = None) -> bool:
+def check_branch(body: bytes, branch: str) -> bool:
     try:
         data = json.loads(body.decode("utf-8"))
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=403, detail="Invalid request body.")
-    requested = data.get("ref", None)
-    expected = (
-        f"refs/heads/{branch}"
-        if branch
-        else f"refs/heads/{data['repository']['default_branch']}"
-    )
-    if requested is None or requested != expected:
+        requested = data["ref"]
+    except (json.JSONDecodeError, KeyError):
         return False
-    return True
+    return requested == f"refs/heads/{branch}"
 
 
-@api.post("/webhook/{appname}")
+@api.post("/api/webhook/{appname}", status_code=200)
 async def receive_webhook(
     request: Request,
     appname: str,
     x_github_event: Annotated[str, Header()],
     x_hub_signature_256: Annotated[str, Header()],
-    background: BackgroundTasks,
+    tasks: BackgroundTasks,
 ):
     global rebuild_task
     match x_github_event:
@@ -91,15 +84,10 @@ async def receive_webhook(
         case "push":
             pass
         case _:
-            return {"message": "Unknown: no action will be taken."}
+            return
     body = await request.body()
-    if core.config.rebuild is False:
-        return {"message": "Rebuild disabled."}
-    if core.config.rebuild.verify_signature:
-        verify_signature(body, x_hub_signature_256, core.config.rebuild.secret)
-    if core.config.rebuild.verify_branch and not verify_branch(
-        body, core.config.rebuild.branch
-    ):
-        return {"message": "Not on default branch: no action will be taken."}
-    background.add_task(rebuild)
-    return {"message": "Push received, started upgrade."}
+    if CD_CHECK:
+        if not check_branch(body, CD_BRANCH):
+            return
+        verify_signature(body, x_hub_signature_256, CD_SECRET)
+    tasks.add_task(upgrade_and_restart, CD_VCS_PACKAGE_URL)
