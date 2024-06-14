@@ -1,10 +1,14 @@
 import sqlite3
 from dataclasses import dataclass, field
-from typing import ClassVar, Iterator, Self, Protocol
+from typing import Annotated, ClassVar, Iterator, Self, Protocol
 from datetime import datetime, timezone
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 import json
 import re
+from functools import cache
+
+from fastapi import Depends, Request
+
 
 try:
     import pysqlite3 as sqlite3  # type: ignore
@@ -251,7 +255,7 @@ class User(Table):
         return cls(**row) if row is not None else None
 
 
-class WebPushSubcription(Table):
+class WebPushSubscription(Table):
     CREATE_TABLE: ClassVar[str] = """
         CREATE TABLE IF NOT EXISTS web_push_subscription(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -296,4 +300,18 @@ class WWWMINDatabase(Database):
     uri: str = DB_URI
     contact_form_submissions = ContactFormSubmission
     users = User
-    web_push_subscription = WebPushSubcription
+    web_push_subscription = WebPushSubscription
+
+
+@asynccontextmanager
+async def lifespan(app):
+    app.state.database = inst = WWWMINDatabase()
+    with inst:
+        yield
+
+
+async def _depend_on_database(request: Request):
+    return request.app.state.database
+
+
+depends = Annotated[WWWMINDatabase, Depends(_depend_on_database)]

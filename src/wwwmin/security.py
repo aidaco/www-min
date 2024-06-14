@@ -1,13 +1,16 @@
 from datetime import timedelta
 from typing import Annotated
+from urllib.parse import quote
 
 import jwt
 import argon2
-from fastapi import Cookie, Header
+from fastapi import APIRouter, Cookie, FastAPI, Header, Form, Request, Depends
+from fastapi.responses import RedirectResponse
 
 from .util import utcnow
 from .database import User
 
+api = APIRouter()
 hasher = argon2.PasswordHasher()
 JWT_SECRET = "correct horse battery staple"
 JWT_TTL = timedelta(days=30)
@@ -71,3 +74,36 @@ async def authenticate(
         return User.get(user_id)
     except AuthenticationError:
         raise LoginRequired("Invalid authentication found.")
+
+
+authenticated = Annotated[User, Depends(authenticate)]
+
+
+@api.post("/api/token")
+async def submit_login(
+    username: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    next: Annotated[str, Form()] = "/admin.html",
+):
+    try:
+        _, token = login_user(username, password)
+    except AuthenticationError:
+        return RedirectResponse(f"/login.html?next={next!r}", status_code=302)
+    response = RedirectResponse("/admin.html", status_code=302)
+    response.set_cookie(
+        key="Authorization",
+        value=token,
+        secure=True,
+        httponly=True,
+        samesite="strict",
+        max_age=round(JWT_TTL.total_seconds()),
+    )
+    return response
+
+
+def handle_login_required(request: Request, _: LoginRequired):
+    return RedirectResponse(f"/login.html?next={quote(request.url._url)}")
+
+
+def install_exception_handler(app: FastAPI):
+    app.exception_handler(LoginRequired)(handle_login_required)
