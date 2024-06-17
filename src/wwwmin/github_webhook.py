@@ -77,7 +77,6 @@ async def receive_webhook(
     x_hub_signature_256: Annotated[str, Header()],
     tasks: BackgroundTasks,
 ):
-    global rebuild_task
     match x_github_event:
         case "ping":
             return {"message": "pong"}
