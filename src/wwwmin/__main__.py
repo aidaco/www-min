@@ -1,11 +1,10 @@
-from . import server, database
+from . import server
 from rich import print
 
 
 def main():
     try:
-        with database.WWWMINDatabase() as db:
-            server.serve()
+        server.serve()
     except KeyboardInterrupt:
         print("[red]Stopped.[/]")
 

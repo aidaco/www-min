@@ -2,14 +2,13 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 from importlib.resources import files, as_file
 from urllib.parse import quote
-from pathlib import Path
 
-from fastapi import APIRouter, Request, Depends, Query, FastAPI
+from fastapi import APIRouter, Request, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from .database import User, ContactFormSubmission
+from .database import ContactFormSubmission
 from . import security, static, templates
 
 

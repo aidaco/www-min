@@ -12,4 +12,3 @@ for (let accordion of document.querySelectorAll('.accordion')) {
     }
   })
 }
-

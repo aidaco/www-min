@@ -39,13 +39,12 @@ def notify_all(db: database.WWWMINDatabase, data: dict) -> None:
 
 @api.get("/api/vapid-public-key", response_class=PlainTextResponse)
 async def get_vapid_public_key():
-    enc = py_vapid.b64urlencode(
-        key := vapid.public_key.public_bytes(
+    return py_vapid.b64urlencode(
+        vapid.public_key.public_bytes(
             py_vapid.serialization.Encoding.X962,
             py_vapid.serialization.PublicFormat.UncompressedPoint,
         )
     )
-    return enc
 
 
 @api.post("/api/register-push-subscription")

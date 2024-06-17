@@ -32,7 +32,7 @@ async function subscribeWebPushNotifications() {
     const vapidPublicKey = await response.text()
     console.log(vapidPublicKey)
     // console.log(window.atob(vapidPublicKey))
-    // const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);  
+    // const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
     const convertedVapidKey = vapidPublicKey
 
     console.log(convertedVapidKey)
@@ -59,4 +59,3 @@ document.querySelector("button.push-subscribe").addEventListener("click", async 
     await subscribeWebPushNotifications()
   }
 });
-

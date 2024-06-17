@@ -1,11 +1,10 @@
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Annotated, ClassVar, Iterator, Self, Protocol
-from datetime import datetime, timezone
+from typing import Annotated, ClassVar, Self
+from datetime import datetime
 from contextlib import asynccontextmanager, contextmanager
 import json
 import re
-from functools import cache
 
 from fastapi import Depends, Request
 
@@ -99,7 +98,10 @@ class Database(metaclass=DatabaseMeta):
 
     @property
     def connection(self) -> sqlite3.Connection:
-        return self._connection or self.connect() or self._connection
+        if self._connection is None:
+            self.connect()
+            assert self._connection is not None
+        return self._connection
 
     def connect(self):
         self._connection = sqlite3.connect(self.uri, isolation_level=None)
@@ -164,7 +166,7 @@ class ContactFormSubmission(Table):
     INSERT_ROW: ClassVar[str] = """
         INSERT INTO contact_form_submission(
             email, message, phone, received_at, archived_at
-        ) 
+        )
         VALUES (:email, :message, :phone, :received_at, :archived_at)
         RETURNING *
     """
@@ -239,7 +241,7 @@ class User(Table):
         )
     """
     INSERT_ROW: ClassVar[str] = """
-        INSERT INTO user(username, password_hash) 
+        INSERT INTO user(username, password_hash)
         VALUES (:username, :password)
         RETURNING *
     """
@@ -265,7 +267,7 @@ class WebPushSubscription(Table):
         )
     """
     INSERT_ROW: ClassVar[str] = """
-        INSERT INTO web_push_subscription(user_id, subscription, subscribed_at) 
+        INSERT INTO web_push_subscription(user_id, subscription, subscribed_at)
         VALUES (:user_id, :subscription, :subscribed_at)
         RETURNING *
     """
