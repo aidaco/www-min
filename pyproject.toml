@@ -22,11 +22,12 @@ dependencies = [
   "argon2-cffi",
   "pysqlite3-binary",
   "pywebpush",
-  "py_vapid"
+  "py_vapid",
+  "requests"
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "mypy"]
+dev = ["pre-commit", "ruff", "mypy", "types-requests"]
 test = ["pytest", "coverage"]
 
 [project.urls]
