@@ -8,7 +8,7 @@ from fastapi import APIRouter, Cookie, FastAPI, Header, Form, Request, Depends
 from fastapi.responses import RedirectResponse
 
 from .util import utcnow
-from .database import User
+from . import database
 from .config import config as main_config
 
 
@@ -52,13 +52,17 @@ def decode_token(token: str) -> dict:
         raise AuthenticationError("Invalid token.")
 
 
-def create_user(username: str, password: str) -> User:
+def create_user(
+    db: database.WWWMINDatabase, username: str, password: str
+) -> database.User:
     password_hash = hash_password(password)
-    return User.insert(username, password_hash)
+    return db.users.insert(username, password_hash)
 
 
-def login_user(username: str, password: str) -> tuple[User, str]:
-    user = User.by_name(username)
+def login_user(
+    db: database.WWWMINDatabase, username: str, password: str
+) -> tuple[database.User, str]:
+    user = db.users.by_name(username)
     if not user:
         raise AuthenticationError("User not found.")
     verify_password(user.password_hash, password)
@@ -71,30 +75,32 @@ class LoginRequired(Exception):
 
 
 async def authenticate(
+    db: database.depends,
     cookie: Annotated[str | None, Cookie(alias="Authorization")] = None,
     header: Annotated[str | None, Header(alias="Authorization")] = None,
-) -> User | None:
+) -> database.User | None:
     token = cookie or header
     if token is None:
         raise LoginRequired("No authorization found.")
     try:
         user_id = decode_token(token)
-        return User.get(user_id)
+        return db.users.get(user_id)
     except AuthenticationError:
         raise LoginRequired("Invalid authentication found.")
 
 
-authenticated = Annotated[User, Depends(authenticate)]
+authenticated = Annotated[database.User, Depends(authenticate)]
 
 
 @api.post("/api/token")
 async def submit_login(
+    db: database.depends,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     next: Annotated[str, Form()] = "/admin.html",
 ):
     try:
-        _, token = login_user(username, password)
+        _, token = login_user(db, username, password)
     except AuthenticationError:
         return RedirectResponse(f"/login.html?next={next!r}", status_code=302)
     response = RedirectResponse("/admin.html", status_code=302)
