@@ -8,8 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from .database import ContactFormSubmission
-from . import security, static, templates
+from . import security, static, templates, database
 
 
 @asynccontextmanager
@@ -54,12 +53,17 @@ def get_login(templates: depends, request: Request, next: Annotated[str, Query()
 
 
 @api.get("/admin.html", response_class=HTMLResponse)
-async def get_admin(templates: depends, request: Request, _: security.authenticated):
+async def get_admin(
+    db: database.depends,
+    templates: depends,
+    request: Request,
+    _: security.authenticated,
+):
     return templates.TemplateResponse(
         request,
         "admin.html",
         context={
-            "active_submissions": ContactFormSubmission.active(),
-            "archived_submissions": ContactFormSubmission.archived(),
+            "active_submissions": db.contact_form_submissions.active(),
+            "archived_submissions": db.contact_form_submissions.archived(),
         },
     )
