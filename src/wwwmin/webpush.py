@@ -7,10 +7,15 @@ import py_vapid
 from pywebpush import webpush, WebPushException
 
 from . import security, database
+from .config import config as main_config
 
 
-VAPID_PRIVATE_KEY_FILE = "vapid-private-key.pem"
-vapid = py_vapid.Vapid.from_file(VAPID_PRIVATE_KEY_FILE)
+@main_config.section("webpush")
+class config:
+    vapid_private_key_file: str = "vapid-private-key.pem"
+
+
+vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
 api = APIRouter()
 
 
@@ -21,7 +26,7 @@ def notify_all(db: database.WWWMINDatabase, data: dict) -> None:
             webpush(
                 json.loads(subscription.subscription),
                 data=payload,
-                vapid_private_key=VAPID_PRIVATE_KEY_FILE,
+                vapid_private_key=config.vapid_private_key_file,
                 vapid_claims={
                     "sub": "mailto:push@aidan.software",
                 },

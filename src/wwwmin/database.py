@@ -14,9 +14,13 @@ try:
 except Exception:
     pass
 
+from wwwmin.config import config as main_config
 from wwwmin.util import utcnow
 
-DB_URI = "db.sqlite3"
+
+@main_config.section("database")
+class config:
+    uri: str = "db.sqlite3"
 
 
 class TableMeta(type):
@@ -299,7 +303,7 @@ class WebPushSubscription(Table):
 
 
 class WWWMINDatabase(Database):
-    uri: str = DB_URI
+    uri: str = config.uri
     contact_form_submissions = ContactFormSubmission
     users = User
     web_push_subscription = WebPushSubscription

@@ -10,13 +10,18 @@ from typing import Annotated
 import psutil
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 
+from .config import config as main_config
+
 
 api = APIRouter()
 
-CD_VCS_PACKAGE_URL = "git+https://github.com/aidaco/www-min"
-CD_CHECK = True
-CD_BRANCH = "main"
-CD_SECRET = "secret value"
+
+@main_config.section("cd")
+class config:
+    vcs_package_url: str = "git+https://github.com/aidaco/www-min"
+    branch: str = "main"
+    secret: str = "secret value"
+    check: bool = True
 
 
 async def cleanup():
@@ -85,8 +90,8 @@ async def receive_webhook(
         case _:
             return
     body = await request.body()
-    if CD_CHECK:
-        if not check_branch(body, CD_BRANCH):
+    if config.check:
+        if not check_branch(body, config.branch):
             return
-        verify_signature(body, x_hub_signature_256, CD_SECRET)
-    tasks.add_task(upgrade_and_restart, CD_VCS_PACKAGE_URL)
+        verify_signature(body, x_hub_signature_256, config.secret)
+    tasks.add_task(upgrade_and_restart, config.vcs_package_url)

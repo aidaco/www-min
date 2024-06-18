@@ -9,11 +9,17 @@ from fastapi.responses import RedirectResponse
 
 from .util import utcnow
 from .database import User
+from .config import config as main_config
+
+
+@main_config.section("security")
+class config:
+    jwt_secret: str = "correct horse battery staple"
+    jwt_ttl: timedelta = timedelta(days=30)
+
 
 api = APIRouter()
 hasher = argon2.PasswordHasher()
-JWT_SECRET = "correct horse battery staple"
-JWT_TTL = timedelta(days=30)
 
 
 class AuthenticationError(Exception):
@@ -33,13 +39,15 @@ def verify_password(hash: str, password: str) -> bool:
 
 def encode_token(user_id: int) -> str:
     return jwt.encode(
-        {"user": user_id, "exp": utcnow() + JWT_TTL}, key=JWT_SECRET, algorithm="HS256"
+        {"user": user_id, "exp": utcnow() + config.jwt_ttl},
+        key=config.jwt_secret,
+        algorithm="HS256",
     )
 
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, key=JWT_SECRET, algorithms=["HS256"])["user"]
+        return jwt.decode(token, key=config.jwt_secret, algorithms=["HS256"])["user"]
     except jwt.DecodeError:
         raise AuthenticationError("Invalid token.")
 
@@ -96,7 +104,7 @@ async def submit_login(
         secure=True,
         httponly=True,
         samesite="strict",
-        max_age=round(JWT_TTL.total_seconds()),
+        max_age=round(config.jwt_ttl.total_seconds()),
     )
     return response
 
