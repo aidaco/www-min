@@ -73,7 +73,9 @@ class Table(metaclass=TableMeta, init=False):
 
     @classmethod
     def get(cls, *args, **kwargs) -> Self | None:
-        row = cls.database.query(cls.GET_ROW, *args, **kwargs).fetchone()
+        row = cls.database.query(
+            cls.GET_ROW.format(name=cls.NAME), *args, **kwargs
+        ).fetchone()
         return cls(**row) if row is not None else None
 
 
