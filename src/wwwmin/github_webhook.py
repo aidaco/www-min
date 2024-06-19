@@ -48,7 +48,6 @@ async def upgrade_and_restart(vcs_url: str):
     subprocess.run(
         [sys.executable, "-m", "pip", "install", "--upgrade", vcs_url],
         check=True,
-        capture_output=True,
     )
     os.execv(sys.orig_argv[0], sys.orig_argv)
 

@@ -4,6 +4,7 @@ from functools import cached_property
 import tomllib
 from pathlib import Path
 from typing import Any, Callable
+import toml
 
 
 @dataclass
@@ -30,11 +31,13 @@ class Config:
     def parse(self, section_class: type, data: dict):
         return TypeAdapter(section_class).validate_python(data)
 
-    def dump(self) -> dict:
-        return {
-            key: TypeAdapter(section_class).dump_python(self.section_instances[key])
-            for key, section_class in self.section_classes.items()
-        }
+    def to_toml(self) -> str:
+        return toml.dumps(
+            {
+                key: TypeAdapter(section_class).dump_python(self.section_instances[key])
+                for key, section_class in self.section_classes.items()
+            }
+        )
 
     def section(self, key: str) -> Callable:
         def inner(cls: type):

@@ -308,7 +308,7 @@ class WWWMINDatabase(Database):
     uri: str = config.uri
     contact_form_submissions = ContactFormSubmission
     users = User
-    web_push_subscription = WebPushSubscription
+    web_push_subscriptions = WebPushSubscription
 
 
 @asynccontextmanager

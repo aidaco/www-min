@@ -23,11 +23,12 @@ dependencies = [
   "pysqlite3-binary",
   "pywebpush",
   "py_vapid",
-  "requests"
+  "requests",
+  "toml"
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "mypy", "types-requests"]
+dev = ["pre-commit", "ruff", "mypy", "types-requests", "types-toml"]
 test = ["pytest", "coverage"]
 
 [project.urls]

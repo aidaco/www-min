@@ -20,7 +20,7 @@ repos:
   rev: v1.10.0
   hooks:
     - id: mypy
-      additional_dependencies: ['types-requests']
+      additional_dependencies: ['types-requests', 'types-toml']
 - repo: local
   hooks:
     - id: pytest-check
