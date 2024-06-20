@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from pydantic import TypeAdapter
 from functools import cached_property
-import tomllib
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
+
+from pydantic import TypeAdapter
+import appdirs
 import toml
 
 
@@ -12,32 +13,45 @@ class Config:
     path: Path
     section_classes: dict[str, type] = field(default_factory=dict)
     section_instances: dict[str, Any] = field(default_factory=dict)
-    _data: dict | None = None
+    _data: Mapping | None = None
 
     @cached_property
-    def data(self) -> dict:
+    def data(self) -> Mapping:
         if self._data is None:
             self.read()
             assert self._data is not None
         return self._data
 
     def read(self):
-        if not self.path.exists():
-            self._data = {}
-            return
-        with self.path.open("rb") as fp:
-            self._data = tomllib.load(fp)
+        match self.path:
+            case Path() as path:
+                self._data = self.read_file(path)
+            case _:
+                self._data = {}
+
+    def read_file(self, path: Path) -> dict:
+        if not path.exists():
+            return {}
+        with path.open("r") as fp:
+            return toml.load(fp)
 
     def parse(self, section_class: type, data: dict):
         return TypeAdapter(section_class).validate_python(data)
 
-    def to_toml(self) -> str:
-        return toml.dumps(
-            {
-                key: TypeAdapter(section_class).dump_python(self.section_instances[key])
-                for key, section_class in self.section_classes.items()
-            }
-        )
+    def dump_python(self) -> dict:
+        return {
+            key: TypeAdapter(section_class).dump_python(
+                self.section_instances[key], mode="json"
+            )
+            for key, section_class in self.section_classes.items()
+        }
+
+    def dumps(self) -> str:
+        return toml.dumps(self.dump_python())
+
+    def dump(self) -> None:
+        with self.path.open("w") as fp:
+            fp.write(self.dumps())
 
     def section(self, key: str) -> Callable:
         def inner(cls: type):
@@ -49,4 +63,4 @@ class Config:
         return inner
 
 
-config = Config(Path.cwd() / "wwwmin.toml")
+config = Config(Path(appdirs.user_config_dir("wwwmin")) / "config.toml")

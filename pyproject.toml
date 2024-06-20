@@ -24,7 +24,8 @@ dependencies = [
   "pywebpush",
   "py_vapid",
   "requests",
-  "toml"
+  "toml",
+  "appdirs"
 ]
 
 [project.optional-dependencies]
