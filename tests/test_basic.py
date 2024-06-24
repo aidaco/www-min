@@ -16,10 +16,12 @@ def test_server_starts():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    time.sleep(5)
-    with requests.Session() as session:
-        content = session.get("http://localhost:8000/api/health").json()
-        assert content == {"status": "ok"}
-    proc.send_signal(signal.SIGINT)
-    proc.wait()
-    assert proc.returncode == 0
+    try:
+        time.sleep(10)
+        with requests.Session() as session:
+            content = session.get("http://localhost:8000/api/health").json()
+            assert content == {"status": "ok"}
+    finally:
+        proc.send_signal(signal.SIGINT)
+        proc.wait()
+        assert proc.returncode == 0

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Website Closed</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="card">
+    <h1>This Website is Closed</h1>
+    <h2>Hours of Operation</h2>
+    <table>
+      <tr>
+        <th>Monday</th>
+        <td>9AM - 5PM EST/EDT</td>
+      </tr>
+      <tr>
+        <th>Tuesday</th>
+        <td>9AM - 5PM EST/EDT</td>
+      </tr>
+      <tr>
+        <th>Wednesday</th>
+        <td>9AM - 5PM EST/EDT</td>
+      </tr>
+      <tr>
+        <th>Thursday</th>
+        <td>9AM - 5PM EST/EDT</td>
+      </tr>
+      <tr>
+        <th>Friday</th>
+        <td>9AM - 5PM EST/EDT</td>
+      </tr>
+      <tr>
+        <th>Saturday</th>
+        <td>Closed</td>
+      </tr>
+      <tr>
+        <th>Sunday</th>
+        <td>Closed</td>
+      </tr>
+    <tfoot>
+      <tr>
+        <th>Current</th>
+        <td><span class="clock"></span></td>
+      </tr>
+    </tfoot>
+    </table>
+  </div>
+
+  <script>
+    function replaceESTEDT() {
+      let isEDT = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).endsWith('EDT');
+      let timeZoneNameShort = isEDT? 'EDT': 'EST'
+      document.querySelectorAll('td')
+              .forEach(e=>{
+                if (e.textContent.includes('EST/EDT')) {
+                  e.textContent = e.textContent.replace(/EST\/EDT/, timeZoneNameShort)
+                }
+              })
+    }
+
+    function updateClock() {
+      let now = new Date();
+      let options = {
+        timeZone: 'America/New_York',
+        timeZoneName: 'short',
+        hour12: true,
+        hour: 'numeric',
+        minute: 'numeric',
+        // second: 'numeric'
+      };
+      let timeString = now.toLocaleTimeString('en-US', options);
+      document.querySelector('.clock').textContent = timeString;
+    }
+
+    replaceESTEDT()
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>

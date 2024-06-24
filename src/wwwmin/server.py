@@ -3,7 +3,15 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from . import security, github_webhook, webpush, submissions, assets, database
+from . import (
+    security,
+    github_webhook,
+    webpush,
+    submissions,
+    assets,
+    database,
+    operating_hours,
+)
 
 
 @asynccontextmanager
@@ -13,6 +21,7 @@ async def lifespan(_):
 
 
 api = FastAPI(lifespan=lifespan)
+api.middleware("http")(operating_hours.check_open_hours)
 api.include_router(security.api)
 api.include_router(submissions.api)
 security.install_exception_handler(api)
