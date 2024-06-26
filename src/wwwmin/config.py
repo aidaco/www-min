@@ -1,39 +1,25 @@
 from dataclasses import dataclass, field
 from functools import cached_property
+from io import StringIO
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, BinaryIO, Callable, Literal, Mapping, TextIO
+import json
 
 from pydantic import TypeAdapter
 import appdirs
 import toml
 
+try:
+    import yaml
+except ImportError:
+    pass
+
 
 @dataclass
 class Config:
-    path: Path
+    data: Mapping = field(default_factory=dict)
     section_classes: dict[str, type] = field(default_factory=dict)
     section_instances: dict[str, Any] = field(default_factory=dict)
-    _data: Mapping | None = None
-
-    @cached_property
-    def data(self) -> Mapping:
-        if self._data is None:
-            self.read()
-            assert self._data is not None
-        return self._data
-
-    def read(self):
-        match self.path:
-            case Path() as path:
-                self._data = self.read_file(path)
-            case _:
-                self._data = {}
-
-    def read_file(self, path: Path) -> dict:
-        if not path.exists():
-            return {}
-        with path.open("r") as fp:
-            return toml.load(fp)
 
     def parse(self, section_class: type, data: dict):
         return TypeAdapter(section_class).validate_python(data)
@@ -46,12 +32,17 @@ class Config:
             for key, section_class in self.section_classes.items()
         }
 
-    def dumps(self) -> str:
-        return toml.dumps(self.dump_python())
-
-    def dump(self) -> None:
-        with self.path.open("w") as fp:
-            fp.write(self.dumps())
+    def dumps(self, format: Literal["toml", "josn", "yaml"] = "toml") -> str:
+        value = self.dump_python()
+        match format:
+            case "toml":
+                return toml.dumps(value)
+            case "json":
+                return json.dumps(value)
+            case "yaml":
+                return yaml.safe_dump(value)
+            case _:
+                raise ValueError("Unsupported config format.")
 
     def section(self, key: str) -> Callable:
         def inner(cls: type):
@@ -63,4 +54,45 @@ class Config:
         return inner
 
 
-config = Config(Path(appdirs.user_config_dir("wwwmin")) / "config.toml")
+def load(data: Mapping) -> None:
+    global config
+    config = Config(data)
+
+
+def loads(content: str = "", format: str = "toml") -> None:
+    global config
+    match format:
+        case "toml":
+            data = toml.load(content)
+        case "json":
+            data = json.loads(content)
+        case "yaml":
+            data = yaml.safe_load(content)
+        case _:
+            raise ValueError("Unsupported config format.")
+    load(data)
+
+
+def load_path(
+    path: Path = Path(appdirs.user_config_dir("wwwmin")) / "config.toml",
+) -> None:
+    global config
+    match path.suffix:
+        case _ if not path.exists():
+            data = {}
+        case ".toml":
+            with path.open("r") as fp:
+                data = toml.load(fp)
+        case ".json":
+            with path.open("r") as fp:
+                data = json.load(fp)
+        case ".yaml":
+            with path.open("r") as fp:
+                data = yaml.safe_load(fp)
+        case _:
+            data = {}
+    load(data)
+
+
+config: Config
+load_path()

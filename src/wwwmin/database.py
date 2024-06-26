@@ -5,17 +5,25 @@ from datetime import datetime
 from contextlib import asynccontextmanager, contextmanager
 import json
 import re
+import functools
 
-from fastapi import Depends, Request
+from fastapi import Depends
 
-
-try:
-    import pysqlite3 as sqlite3  # type: ignore
-except Exception:
-    pass
 
 from wwwmin.config import config as main_config
 from wwwmin.util import utcnow
+
+
+def _load_pysqlite3_if_available() -> None:
+    """put this in a function for type checker compatibility"""
+    global sqlite3
+    try:
+        import pysqlite3 as sqlite3
+    except Exception:
+        pass
+
+
+_load_pysqlite3_if_available()
 
 
 @main_config.section("database")
@@ -24,7 +32,7 @@ class config:
 
 
 class TableMeta(type):
-    database: "Database"
+    database: "DatabaseBase"
 
     def __new__(cls, name, bases, dct, init=True):
         inst = super().__new__(cls, name, bases, dct)
@@ -44,7 +52,7 @@ class TableMeta(type):
 
 
 class Table(metaclass=TableMeta, init=False):
-    database: "Database"
+    database: "DatabaseBase"
     NAME: str
     CREATE_TABLE: ClassVar[str]
     INSERT_ROW: ClassVar[str]
@@ -85,11 +93,11 @@ class DatabaseMeta(type):
         inst = dataclass(inst)  # type: ignore
         return inst
 
-    def __init__(cls, name, bases, dct):
+    def __init__(cls, *_):
         super().__init__(cls)
 
 
-class Database(metaclass=DatabaseMeta):
+class DatabaseBase(metaclass=DatabaseMeta):
     uri: str
     _connection: sqlite3.Connection | None = None
 
@@ -154,7 +162,7 @@ class Database(metaclass=DatabaseMeta):
         self.connect()
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(self, *_) -> None:
         self.connection.close()
 
 
@@ -304,22 +312,33 @@ class WebPushSubscription(Table):
         return cls(**row) if row is not None else None
 
 
-class WWWMINDatabase(Database):
+class Database(DatabaseBase):
     uri: str = config.uri
     contact_form_submissions = ContactFormSubmission
     users = User
     web_push_subscriptions = WebPushSubscription
 
 
+database: Database
+
+
+@functools.wraps(Database)
+def load(*args, **kwargs) -> None:
+    global database
+    database = Database(*args, **kwargs)
+
+
+load()
+
+
 @asynccontextmanager
-async def lifespan(app):
-    app.state.database = inst = WWWMINDatabase()
-    with inst:
+async def lifespan(_):
+    with database:
         yield
 
 
-async def _depend_on_database(request: Request):
-    return request.app.state.database
+async def _depend_on_database():
+    return database
 
 
-depends = Annotated[WWWMINDatabase, Depends(_depend_on_database)]
+depends = Annotated[Database, Depends(_depend_on_database)]

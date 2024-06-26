@@ -19,7 +19,7 @@ vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
 api = APIRouter()
 
 
-async def notify_all(db: database.WWWMINDatabase, data: dict) -> None:
+async def notify_all(db: database.Database, data: dict) -> None:
     payload = json.dumps(data)
     for subscription in db.web_push_subscriptions.iter():
         try:

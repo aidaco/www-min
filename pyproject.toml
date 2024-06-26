@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "mypy", "types-requests", "types-toml"]
+dev = ["pre-commit", "pyright", "ruff", "mypy", "types-requests", "types-toml"]
 test = ["pytest", "coverage"]
 
 [project.urls]
@@ -41,3 +41,9 @@ wwwmin-serve = "wwwmin.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = 'py312'
+
+[tool.pyright]
+pythonVersion = '3.12'

@@ -4,6 +4,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from . import security, github_webhook, webpush, submissions, assets, database
+from .config import config as main_config
+
+
+@main_config.section("server")
+class config:
+    host: str = "localhost"
+    port: int = 8000
 
 
 @asynccontextmanager
@@ -33,4 +40,4 @@ async def health_check(db: database.depends, templates: assets.depends):
 
 
 def serve():
-    uvicorn.run(api)
+    uvicorn.run(api, host=config.host, port=config.port)
