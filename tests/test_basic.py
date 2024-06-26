@@ -1,27 +1,11 @@
-import subprocess
-import signal
-import time
-
-import requests
+from .utils import run_server_cli, wait_for_response
 
 
-def test_import_toplevel():
+def test_main_is_importable():
     pass
 
 
 def test_server_starts():
-    proc = subprocess.Popen(
-        ["wwwmin-serve"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        time.sleep(10)
-        with requests.Session() as session:
-            content = session.get("http://localhost:8000/api/health").json()
-            assert content == {"status": "ok"}
-    finally:
-        proc.send_signal(signal.SIGINT)
-        proc.wait()
-        assert proc.returncode == 0
+    with run_server_cli():
+        content = wait_for_response("http://localhost:8000/api/health").json()
+        assert content == {"status": "ok"}
