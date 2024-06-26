@@ -15,31 +15,6 @@ except ImportError:
     pass
 
 
-type Opener = Callable[[Literal["r", "w"]], TextIO]
-
-
-def str_opener(content: str) -> Opener:
-    def _open(mode: Literal["r", "w"]):
-        match mode:
-            case "r":
-                return StringIO(content)
-            case "w":
-                return StringIO()
-
-    return _open
-
-
-def path_opener(path: Path) -> Opener:
-    def _open(mode: Literal["r", "w"]):
-        match mode:
-            case _ if not path.exists():
-                return StringIO()
-            case _:
-                return path.open(mode)
-
-    return _open
-
-
 @dataclass
 class Config:
     data: Mapping = field(default_factory=dict)
