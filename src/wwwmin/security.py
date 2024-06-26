@@ -52,17 +52,13 @@ def decode_token(token: str) -> dict:
         raise AuthenticationError("Invalid token.")
 
 
-def create_user(
-    db: database.WWWMINDatabase, username: str, password: str
-) -> database.User:
+def create_user(username: str, password: str) -> database.User:
     password_hash = hash_password(password)
-    return db.users.insert(username, password_hash)
+    return database.database.users.insert(username, password_hash)
 
 
-def login_user(
-    db: database.WWWMINDatabase, username: str, password: str
-) -> tuple[database.User, str]:
-    user = db.users.by_name(username)
+def login_user(username: str, password: str) -> tuple[database.User, str]:
+    user = database.database.users.by_name(username)
     if not user:
         raise AuthenticationError("User not found.")
     verify_password(user.password_hash, password)
@@ -94,13 +90,12 @@ authenticated = Annotated[database.User, Depends(authenticate)]
 
 @api.post("/api/token")
 async def submit_login(
-    db: database.depends,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     next: Annotated[str, Form()] = "/admin.html",
 ):
     try:
-        _, token = login_user(db, username, password)
+        _, token = login_user(username, password)
     except AuthenticationError:
         return RedirectResponse(f"/login.html?next={next!r}", status_code=302)
     response = RedirectResponse("/admin.html", status_code=302)
