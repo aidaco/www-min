@@ -76,6 +76,10 @@ table {
   width: 100%;
 }
 
+table tr:nth-child(even) {
+    background: var(--accent-light);
+}
+
 th,
 td {
   border: 2px solid var(--secondary);
