@@ -24,6 +24,11 @@ def wait_for_response(*args, timeout: int = 10, **kwargs) -> requests.Response:
                 raise exc
 
 
+def wait_for_healthcheck(timeout: int = 10) -> requests.Response:
+    resp = wait_for_response("http://localhost:8000/api/health", timeout=timeout)
+    return resp
+
+
 @contextlib.contextmanager
 def run_server(
     config: dict = {

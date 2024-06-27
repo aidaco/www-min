@@ -29,7 +29,7 @@
           <pre>{{ submission.message }}</pre>
         </td>
         <td>
-          <form action="/api/messages/archive" method="post">
+          <form action="/form/submissions/archive" method="post">
             <input type="num" name="id" value="{{ submission.id }}" hidden></input>
             <input type="submit" value="X"></input>
           </form>
@@ -62,7 +62,7 @@
         </td>
         <td>{{ submission.archived_at }}"</td>
         <td>
-          <form action="/api/messages/unarchive" method="post">
+          <form action="/form/submissions/unarchive" method="post">
             <input type="num" name="id" value="{{ submission.id }}" hidden></input>
             <input type="submit" value="X"></input>
           </form>

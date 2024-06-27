@@ -4,7 +4,16 @@ from urllib.parse import quote
 
 import jwt
 import argon2
-from fastapi import APIRouter, Cookie, FastAPI, Header, Form, Request, Depends
+from fastapi import (
+    APIRouter,
+    Cookie,
+    FastAPI,
+    HTTPException,
+    Header,
+    Form,
+    Request,
+    Depends,
+)
 from fastapi.responses import RedirectResponse
 
 from .util import utcnow
@@ -90,6 +99,18 @@ authenticated = Annotated[database.User, Depends(authenticate)]
 
 @api.post("/api/token")
 async def submit_login(
+    username: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+):
+    try:
+        _, token = login_user(username, password)
+    except AuthenticationError:
+        raise HTTPException(status_code=401, detail="Authentication failed.")
+    return {"token": token}
+
+
+@api.post("/form/login")
+async def submit_login_form(
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     next: Annotated[str, Form()] = "/admin.html",
