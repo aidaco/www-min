@@ -1,11 +1,13 @@
 import sqlite3
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Annotated, ClassVar, Self
 from datetime import datetime
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 import json
 import re
 import functools
+import appdirs
 
 from fastapi import Depends
 
@@ -28,7 +30,9 @@ _load_pysqlite3_if_available()
 
 @main_config.section("database")
 class config:
-    uri: str = "db.sqlite3"
+    uri: str = str(
+        (Path(appdirs.user_data_dir("wwwmin")) / "database.sqlite3").resolve()
+    )
 
 
 class TableMeta(type):
@@ -159,7 +163,8 @@ class DatabaseBase(metaclass=DatabaseMeta):
             yield cursor
 
     def __enter__(self):
-        self.connect()
+        if self.connection is not None:
+            self.connect()
         return self
 
     def __exit__(self, *_) -> None:
@@ -329,12 +334,6 @@ def load(*args, **kwargs) -> None:
 
 
 load()
-
-
-@asynccontextmanager
-async def lifespan(_):
-    with database:
-        yield
 
 
 async def _depend_on_database():

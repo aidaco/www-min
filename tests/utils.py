@@ -38,6 +38,7 @@ def run_server(
     frozendt: datetime.datetime = datetime.datetime.now(
         tz=zoneinfo.ZoneInfo("America/New_York")
     ),
+    user_credentials: list[tuple[str, str]] = [("admin", "password")],
 ):
     def _run_target(config, frozendt):
         import wwwmin.config
@@ -48,6 +49,10 @@ def run_server(
         with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:
             mockdt.now.return_value = frozendt
             import wwwmin.__main__
+            import wwwmin.security
+
+            for username, password in user_credentials:
+                wwwmin.security.create_user(username, password)
 
             wwwmin.__main__.main()
 

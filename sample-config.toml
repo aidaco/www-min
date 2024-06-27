@@ -1,8 +1,0 @@
-[security]
-jwt_secret = "JWT SECRET HERE"
-jwt_ttl = "P10D"
-
-[cd]
-vcs_package_url = "git+https://github.com/aidaco/www-min"
-branch = "main"
-secret = "GITHUB WEBHOOK SECRET HERE"

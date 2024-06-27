@@ -23,7 +23,7 @@ class config:
 
 @asynccontextmanager
 async def lifespan(_):
-    async with database.lifespan(_), assets.lifespan(_):
+    async with assets.lifespan(_):
         yield
 
 
