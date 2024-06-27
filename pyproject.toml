@@ -26,6 +26,7 @@ dependencies = [
   "requests",
   "toml",
   "appdirs",
+  "psutil",
   "cyclopts"
 ]
 
