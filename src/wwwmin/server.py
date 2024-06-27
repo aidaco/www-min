@@ -19,7 +19,7 @@ from .config import config as main_config
 
 @main_config.section("server")
 class config:
-    host: str = "localhost"
+    host: str = "0.0.0.0"
     port: int = 8000
 
 
