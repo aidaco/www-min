@@ -48,13 +48,13 @@ def run_server(
 
         with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:
             mockdt.now.return_value = frozendt
-            import wwwmin.__main__
+            import wwwmin.server
             import wwwmin.security
 
             for username, password in user_credentials:
                 wwwmin.security.create_user(username, password)
 
-            wwwmin.__main__.main()
+            wwwmin.server.serve()
 
     proc = multiprocessing.Process(target=_run_target, args=(config, frozendt))
     proc.start()
