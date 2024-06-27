@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wwwmin"
-version = "0.0.1-beta"
+version = "0.0.1-beta2"
 description = "Frontend & backend for https://aidan.software"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -38,7 +38,7 @@ test = ["pytest", "coverage"]
 "Source" = "https://github.com/aidaco/www-min/"
 
 [project.scripts]
-wwwmin-serve = "wwwmin.__main__:main"
+wwwmin = "wwwmin.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

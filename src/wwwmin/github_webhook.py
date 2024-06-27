@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Annotated
 
 import psutil
@@ -20,6 +21,7 @@ api = APIRouter()
 class config:
     enabled: bool = True
     vcs_package_url: str = "git+https://github.com/aidaco/www-min"
+    vcs_wd: Path = Path.cwd()
     branch: str = "main"
     secret: str = "secret value"
     check: bool = True
@@ -49,6 +51,7 @@ async def upgrade_and_restart(vcs_url: str):
     subprocess.run(
         [sys.executable, "-m", "pip", "install", "--upgrade", vcs_url],
         check=True,
+        cwd=config.vcs_wd,
     )
     os.execv(sys.orig_argv[0], sys.orig_argv)
 

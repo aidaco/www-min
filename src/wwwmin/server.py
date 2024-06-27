@@ -56,10 +56,6 @@ async def health_check(db: database.depends, templates: assets.depends):
 
 def serve():
     try:
-        import logging
-
-        print(logging.getLogger("uvicorn").handlers)
-        print(logging.getLogger("uvicorn").level)
         uvicorn.run(api, host=config.host, port=config.port)
     except KeyboardInterrupt:
         print("[red]Stopped.[/]")
