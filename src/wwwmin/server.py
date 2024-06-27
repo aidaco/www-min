@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from rich import print
 
 from . import (
     security,
@@ -11,6 +12,7 @@ from . import (
     assets,
     database,
     operating_hours,
+    emailing,
 )
 from .config import config as main_config
 
@@ -35,6 +37,8 @@ api.include_router(webpush.api)
 if github_webhook.config.enabled:
     api.include_router(github_webhook.api)
 api.include_router(assets.api)
+if emailing.config.enabled:
+    emailing.install_exception_handler(api)
 
 
 @api.get("/api/health")
@@ -51,4 +55,11 @@ async def health_check(db: database.depends, templates: assets.depends):
 
 
 def serve():
-    uvicorn.run(api, host=config.host, port=config.port)
+    try:
+        import logging
+
+        print(logging.getLogger("uvicorn").handlers)
+        print(logging.getLogger("uvicorn").level)
+        uvicorn.run(api, host=config.host, port=config.port)
+    except KeyboardInterrupt:
+        print("[red]Stopped.[/]")

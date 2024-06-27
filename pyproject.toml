@@ -25,7 +25,8 @@ dependencies = [
   "py_vapid",
   "requests",
   "toml",
-  "appdirs"
+  "appdirs",
+  "cyclopts"
 ]
 
 [project.optional-dependencies]

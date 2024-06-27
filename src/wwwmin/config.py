@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
-from functools import cached_property
-from io import StringIO
 from pathlib import Path
-from typing import Any, BinaryIO, Callable, Literal, Mapping, TextIO
+from typing import Any, Callable, Literal, Mapping
 import json
 
 from pydantic import TypeAdapter
@@ -32,7 +30,7 @@ class Config:
             for key, section_class in self.section_classes.items()
         }
 
-    def dumps(self, format: Literal["toml", "josn", "yaml"] = "toml") -> str:
+    def dumps(self, format: Literal["toml", "json", "yaml"] = "toml") -> str:
         value = self.dump_python()
         match format:
             case "toml":

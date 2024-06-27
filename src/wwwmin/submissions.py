@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Body, Form, HTTPException
 from fastapi.responses import RedirectResponse
 
-from . import webpush, security, database, operating_hours
+from . import webpush, security, database, operating_hours, emailing
 
 api = APIRouter()
 
@@ -22,14 +22,8 @@ async def post_submission(
     submission = db.contact_form_submissions.insert(
         email=email, message=message, phone=phone
     )
-    tasks.add_task(
-        webpush.notify_all,
-        db,
-        {
-            "title": f"Submission - {submission.email} {submission.phone}",
-            "body": f"{submission.message}",
-        },
-    )
+    tasks.add_task(emailing.notify_submission, submission)
+    tasks.add_task(webpush.notify_submission, submission)
     return submission
 
 
