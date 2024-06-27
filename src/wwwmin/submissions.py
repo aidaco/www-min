@@ -7,8 +7,8 @@ from . import webpush, security, database, operating_hours
 api = APIRouter()
 
 
-@api.post("/api/messages", status_code=201)
-async def submit_message(
+@api.post("/api/submissions", status_code=201)
+async def post_submission(
     db: database.depends,
     tasks: BackgroundTasks,
     email: Annotated[str, Form()],
@@ -24,35 +24,35 @@ async def submit_message(
         webpush.notify_all,
         db,
         {
-            "title": f"Contact Submission - {submission.email} {submission.phone}",
+            "title": f"Submission - {submission.email} {submission.phone}",
             "body": f"{submission.message}",
         },
     )
     return RedirectResponse("/", status_code=302)
 
 
-@api.get("/api/messages")
-async def list_messages(_: security.authenticated, db: database.depends):
+@api.get("/api/submissions")
+async def get_submissions(_: security.authenticated, db: database.depends):
     return db.contact_form_submissions.iter()
 
 
-@api.post("/api/messages/archive")
-async def archive_message(
+@api.post("/api/submissions/archive")
+async def archive_submission(
     _: security.authenticated, db: database.depends, id: Annotated[int, Form()]
 ):
-    message = db.contact_form_submissions.get(id)
-    if not message:
+    submission = db.contact_form_submissions.get(id)
+    if not submission:
         raise HTTPException(404, "Not Found.")
-    message.archive()
+    submission.archive()
     return RedirectResponse("/admin.html", status_code=302)
 
 
-@api.post("/api/messages/unarchive")
-async def unarchive_message(
+@api.post("/api/submissions/unarchive")
+async def unarchive_submission(
     _: security.authenticated, db: database.depends, id: Annotated[int, Form()]
 ):
-    message = db.contact_form_submissions.get(id)
-    if not message:
+    submission = db.contact_form_submissions.get(id)
+    if not submission:
         raise HTTPException(404, "Not Found.")
-    message.unarchive()
+    submission.unarchive()
     return RedirectResponse("/admin.html", status_code=302)
