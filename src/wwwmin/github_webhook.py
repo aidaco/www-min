@@ -18,6 +18,7 @@ api = APIRouter()
 
 @main_config.section("cd")
 class config:
+    enabled: bool = True
     vcs_package_url: str = "git+https://github.com/aidaco/www-min"
     branch: str = "main"
     secret: str = "secret value"

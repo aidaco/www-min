@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from . import security, static, templates, database
+from . import security, static, templates, database, operating_hours
 
 
 @asynccontextmanager
@@ -42,6 +42,8 @@ def get_bare_index(templates: depends, request: Request):
 
 @api.get("/index.html", response_class=HTMLResponse)
 def get_index(templates: depends, request: Request):
+    if not operating_hours.open_now():
+        return operating_hours.closed_index(templates, request)
     return templates.TemplateResponse(request, "index.html", context={})
 
 

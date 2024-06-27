@@ -43,7 +43,10 @@ def run_server_cli():
 
 @contextlib.contextmanager
 def run_server(
-    config: dict = {"database": {"uri": ":memory:"}},
+    config: dict = {
+        "database": {"uri": ":memory:"},
+        "operating_hours": {"enabled": False},
+    },
     frozendt: datetime.datetime = datetime.datetime.now(
         tz=zoneinfo.ZoneInfo("America/New_York")
     ),

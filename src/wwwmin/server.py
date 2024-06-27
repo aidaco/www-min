@@ -21,17 +21,19 @@ async def lifespan(_):
 
 
 api = FastAPI(lifespan=lifespan)
-api.middleware("http")(operating_hours.check_open_hours)
 api.include_router(security.api)
 api.include_router(submissions.api)
 security.install_exception_handler(api)
 api.include_router(webpush.api)
-api.include_router(github_webhook.api)
+if github_webhook.config.enabled:
+    api.include_router(github_webhook.api)
 api.include_router(assets.api)
 
 
 @api.get("/api/health")
 async def health_check(db: database.depends, templates: assets.depends):
+    if not operating_hours.open_now():
+        return operating_hours.closed_json()
     try:
         _ = db.query("SELECT 1").fetchone()  # Simple query to test connection
         _ = templates.get_template("index.html")

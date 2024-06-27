@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException
 from fastapi.responses import RedirectResponse
 
-from . import webpush, security, database
+from . import webpush, security, database, operating_hours
 
 api = APIRouter()
 
@@ -15,6 +15,8 @@ async def submit_message(
     message: Annotated[str, Form()],
     phone: Annotated[str | None, Form()] = None,
 ):
+    if not operating_hours.open_now():
+        return operating_hours.closed_json()
     submission = db.contact_form_submissions.insert(
         email=email, message=message, phone=phone
     )
