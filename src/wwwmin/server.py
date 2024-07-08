@@ -39,12 +39,14 @@ if github_webhook.config.enabled:
 api.include_router(assets.api)
 if emailing.config.enabled:
     emailing.install_exception_handler(api)
+if operating_hours.config.enabled:
+    operating_hours.install_exception_handler(api)
 
 
 @api.get("/api/health")
-async def health_check(db: database.depends, templates: assets.depends):
-    if not operating_hours.open_now():
-        return operating_hours.closed_json()
+async def health_check(
+    db: database.depends, templates: assets.depends, _: operating_hours.depends
+):
     try:
         _ = db.query("SELECT 1").fetchone()  # Simple query to test connection
         _ = templates.get_template("index.html")

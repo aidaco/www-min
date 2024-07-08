@@ -17,5 +17,6 @@ def test_operating_hours_open():
 
 def test_operating_hours_closed():
     with run_server(config=COMMON_CONFIG, frozendt=CLOSED_DT):
-        data = wait_for_healthcheck().json()
-        assert data["status"] == "closed"
+        data = wait_for_healthcheck()
+        assert data.status_code == 503
+        assert data.json()["status"] == "closed"

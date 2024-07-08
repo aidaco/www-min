@@ -36,14 +36,14 @@ api = APIRouter(lifespan=lifespan)
 
 
 @api.get("/", response_class=HTMLResponse)
-def get_bare_index(templates: depends, request: Request):
-    return get_index(templates, request)
+def get_bare_index(
+    templates: depends, request: Request, operating: operating_hours.depends
+):
+    return get_index(templates, request, operating)
 
 
 @api.get("/index.html", response_class=HTMLResponse)
-def get_index(templates: depends, request: Request):
-    if not operating_hours.open_now():
-        return operating_hours.closed_index(templates, request)
+def get_index(templates: depends, request: Request, _: operating_hours.depends):
     return templates.TemplateResponse(request, "index.html", context={})
 
 

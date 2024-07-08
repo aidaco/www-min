@@ -12,13 +12,12 @@ api = APIRouter()
 )
 async def post_submission(
     db: database.depends,
+    _: operating_hours.depends,
     tasks: BackgroundTasks,
     email: Annotated[str, Form()],
     message: Annotated[str, Form()],
     phone: Annotated[str | None, Form()] = None,
 ):
-    if not operating_hours.open_now():
-        return operating_hours.closed_json()
     submission = db.contact_form_submissions.insert(
         email=email, message=message, phone=phone
     )
@@ -30,6 +29,7 @@ async def post_submission(
 @api.post("/form/submissions")
 async def post_submission_form(
     db: database.depends,
+    _: operating_hours.depends,
     tasks: BackgroundTasks,
     email: Annotated[str, Form()],
     message: Annotated[str, Form()],

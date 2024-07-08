@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import signal
 from pathlib import Path
 from typing import Annotated
 
@@ -12,6 +13,7 @@ import psutil
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 
 from .config import config as main_config
+from wwwmin.security import authenticated
 
 
 api = APIRouter()
@@ -46,14 +48,25 @@ async def cleanup():
                 pass
 
 
-async def upgrade_and_restart(vcs_url: str):
-    await cleanup()
+def upgrade():
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", vcs_url],
+        [sys.executable, "-m", "pip", "install", "--upgrade", config.vcs_package_url],
         check=True,
         cwd=config.vcs_wd,
     )
+
+
+def restart():
     os.execv(sys.orig_argv[0], sys.orig_argv)
+
+
+def do_upgrade_cycle():
+    upgrade()
+    restart()
+
+
+def shutdown():
+    os.kill(os.getpid(), signal.SIGINT)
 
 
 def verify_signature(body: bytes, signature: str, secret: str) -> None:
@@ -97,4 +110,28 @@ async def receive_webhook(
         if not check_branch(body, config.branch):
             return
         verify_signature(body, x_hub_signature_256, config.secret)
-    tasks.add_task(upgrade_and_restart, config.vcs_package_url)
+    tasks.add_task(do_upgrade_cycle)
+
+
+@api.post("/api/upgrade", status_code=200)
+async def admin_upgrade(
+    _: authenticated,
+    tasks: BackgroundTasks,
+):
+    tasks.add_task(do_upgrade_cycle)
+
+
+@api.post("/api/restart", status_code=200)
+async def admin_restart(
+    _: authenticated,
+    tasks: BackgroundTasks,
+):
+    tasks.add_task(restart)
+
+
+@api.post("/api/shutdown", status_code=200)
+async def admin_shutdown(
+    _: authenticated,
+    tasks: BackgroundTasks,
+):
+    tasks.add_task(shutdown)

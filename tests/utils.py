@@ -24,8 +24,12 @@ def wait_for_response(*args, timeout: int = 10, **kwargs) -> requests.Response:
                 raise exc
 
 
-def wait_for_healthcheck(timeout: int = 10) -> requests.Response:
-    resp = wait_for_response("http://localhost:8000/api/health", timeout=timeout)
+def wait_for_healthcheck(
+    timeout: int = 10, headers={"accept": "application/json"}, **kwargs
+) -> requests.Response:
+    resp = wait_for_response(
+        "http://localhost:8000/api/health", timeout=timeout, headers=headers, **kwargs
+    )
     return resp
 
 

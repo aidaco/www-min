@@ -1,11 +1,12 @@
-from fastapi import Request, Response
+from fastapi import Depends, Request, Response
 from fastapi.responses import JSONResponse
 from datetime import datetime, time
 import zoneinfo
 import calendar
 from dataclasses import field
-from typing import Iterator
+from typing import Iterator, Annotated
 
+from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
 
 from .config import config as main_config
@@ -89,25 +90,26 @@ def closed_json() -> JSONResponse:
     )
 
 
-async def check_open_hours(request: Request, call_next):
-    if not open_now():
-        accepted_content = request.headers.get("accept", "")
+class WebsiteClosedException(Exception):
+    pass
 
-        if "application/json" in accepted_content:
-            return JSONResponse(
-                content={
-                    "status": "closed",
-                    "detail": f"This website is currently closed. Our operating hours are: {to_simple_str()}.",
-                },
-                status_code=503,
-            )
-        else:
-            templates = request.app.state.templates
-            return templates.TemplateResponse(
-                request,
-                "closed.html",
-                {"schedule": iter_daily_parts()},
-                status_code=503,
-            )
-    response = await call_next(request)
-    return response
+
+async def handle_closed_exception(request: Request, _: WebsiteClosedException):
+    accept = request.headers.get("accept", "text/html")
+    if "application/json" in accept:
+        return closed_json()
+    else:
+        return closed_index(request.app.state.templates, request)
+
+
+def install_exception_handler(app: FastAPI):
+    app.exception_handler(WebsiteClosedException)(handle_closed_exception)
+
+
+async def check_open() -> bool:
+    if not open_now():
+        raise WebsiteClosedException()
+    return True
+
+
+depends = Annotated[bool, Depends(check_open)]

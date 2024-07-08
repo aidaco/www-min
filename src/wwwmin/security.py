@@ -134,6 +134,9 @@ async def submit_login_form(
 
 
 def handle_login_required(request: Request, _: LoginRequired):
+    accept = request.headers.get("accept", "text/html")
+    if "application/json" in accept:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
     return RedirectResponse(f"/login.html?next={quote(request.url._url)}")
 
 
