@@ -12,7 +12,7 @@ def test_authenticate_api():
             data={"username": "admin", "password": "password"},
         )
         assert resp.ok
-        token = resp.json()["token"]
+        token = resp.json()["access_token"]
         assert requests.get(
             "http://localhost:8000/admin.html", headers={"Authorization": token}
         ).ok

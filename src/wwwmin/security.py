@@ -9,12 +9,12 @@ from fastapi import (
     Cookie,
     FastAPI,
     HTTPException,
-    Header,
     Form,
     Request,
     Depends,
 )
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from .util import utcnow
 from . import database
@@ -79,10 +79,13 @@ class LoginRequired(Exception):
     pass
 
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token", auto_error=False)
+
+
 async def authenticate(
     db: database.depends,
     cookie: Annotated[str | None, Cookie(alias="Authorization")] = None,
-    header: Annotated[str | None, Header(alias="Authorization")] = None,
+    header: Annotated[str | None, Depends(oauth2_scheme)] = None,
 ) -> database.User | None:
     token = cookie or header
     if token is None:
@@ -98,15 +101,14 @@ authenticated = Annotated[database.User, Depends(authenticate)]
 
 
 @api.post("/api/token")
-async def submit_login(
-    username: Annotated[str, Form()],
-    password: Annotated[str, Form()],
-):
+async def submit_login(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    username = form.username
+    password = form.password
     try:
         _, token = login_user(username, password)
     except AuthenticationError:
-        raise HTTPException(status_code=401, detail="Authentication failed.")
-    return {"token": token}
+        raise HTTPException(status_code=400, detail="Authentication failed.")
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @api.post("/form/login")
