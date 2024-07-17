@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from rich import print
 
 from . import (
+    links,
     security,
     github_webhook,
     webpush,
@@ -30,6 +31,7 @@ async def lifespan(_):
 
 
 api = FastAPI(lifespan=lifespan)
+api.include_router(links.api)
 api.include_router(security.api)
 api.include_router(submissions.api)
 security.install_exception_handler(api)

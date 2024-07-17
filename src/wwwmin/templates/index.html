@@ -4,7 +4,7 @@
 <script defer src="index.js"></script>
 {% endblock %}
 {% block body %}
-<div class="card nameplate">
+<div class="card nameplate shadow">
   <h1>
     Aidan<br>
     Courtney
@@ -16,41 +16,42 @@
   </h2>
 </div>
 
-<div class='card accordion' data-accordion="contact">
-  <button data-accordion="contact" class="toggle">Contact</button>
-  <div data-accordion="contact" class="content">
-    <ul>
-      <li><a href="tel:6317048994">631-704-8994</a></li>
-      <li><a href="mailto:contact@aidan.software">contact@aidan.software</a></li>
+{% for category, links in links_by_category.items() %}
+<div class='card accordion shadow' data-accordion="{{ category.name }}">
+  <button data-accordion="{{ category.name }}" class="toggle">{{ category.name|title }}</button>
+  <div data-accordion="{{ category.name }}" class="content">
+    <ul class="links">
+      {% for link in links %}
+      <li><a class="shadow" href="{{ link.href }}">{{ link.name }}</a></li>
+      {% endfor %}
     </ul>
   </div>
 </div>
+{% endfor %}
 
-<div class="card accordion" data-accordion="links">
-  <button data-accordion="links" class="toggle">Links</button>
-  <div data-accordion="links" class="content">
-    <ul>
-      <li><a href="https://github.com/aidaco">github</a></li>
-      <li><a href="https://linkedin.com/in/aidan-courtney">linkedin</a></li>
-    </ul>
-  </div>
-</div>
-
-<div class='card accordion' data-accordion="message">
+<div class='card accordion shadow' data-accordion="message">
   <button data-accordion="message" class="toggle">Send a message</button>
   <div data-accordion="message" class="content">
     <form action="/form/submissions" method="post">
 
-      <label for="email">email</label>
-      <input type="email" name="email" placeholder="email"></input>
+      <div class="input-group shadow">
+        <label for="email-input">email</label>
+        <input id="email-input" type="email" name="email" placeholder="email"></input>
+      </div>
 
-      <label for="phone">phone</label>
-      <input type="num" name="phone" placeholder="phone"></input>
+      <div class="input-group shadow">
+        <label for="phone-input">phone</label>
+        <input id="phone-input" type="num" name="phone" placeholder="phone"></input>
+      </div>
 
-      <label for="message">message</label>
-      <textarea name="message" placeholder="message"></textarea>
+      <div class="input-group shadow">
+        <label for="message-input">message</label>
+        <textarea id="message-input" name="message" placeholder="message"></textarea>
+      </div>
 
-      <input type="submit" value="Send"></input>
+      <div class="input-group shadow">
+        <input type="submit" value="Send"></input>
+      </div>
     </form>
   </div>
 </div>

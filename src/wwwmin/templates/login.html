@@ -4,20 +4,27 @@
 <script src="login.js"></script>
 {% endblock %}
 {% block body %}
-<div class="background"></div>
-<div class="card">
-  <h1>Login</h1>
+<div class="card shadow">
+  <div class="title">
+    <h1>Login</h1>
+  </div>
   <form action="/form/login" method="post">
-
-    <label for="username">username</label>
-    <input type="text" name="username" placeholder="username"></input>
-
-
-    <label for="password">password</label>
-    <input type="password" name="password" placeholder="password"></textarea>
-
     <input type="text" name="next" value="{{ next_url }}" hidden></input>
-    <input type="submit" value="Submit"></input>
+
+    <div class="input-group shadow">
+      <label for="username-input">username</label>
+      <input id="username-input" type="text" name="username" placeholder="username"></input>
+    </div>
+
+    <div class="input-group shadow">
+      <label for="password-input">password</label>
+      <input id="password-input" type="password" name="password" placeholder="password"></textarea>
+    </div>
+
+
+    <div class="input-group shadow">
+      <input type="submit" value="Submit"></input>
+    </div>
   </form>
 </div>
 {% endblock %}

@@ -41,7 +41,7 @@ class TableMeta(type):
     def __new__(cls, name, bases, dct, init=True):
         inst = super().__new__(cls, name, bases, dct)
         if init:
-            inst = dataclass(inst)  # type: ignore
+            inst = dataclass(inst, frozen=True)  # type: ignore
         return inst
 
     def __get__(cls, owner, owner_cls):
@@ -169,6 +169,126 @@ class DatabaseBase(metaclass=DatabaseMeta):
 
     def __exit__(self, *_) -> None:
         self.connection.close()
+
+
+class LinkCategory(Table):
+    CREATE_TABLE: ClassVar[str] = """
+        CREATE TABLE IF NOT EXISTS link_category(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME
+        )
+    """
+    INSERT_ROW: ClassVar[str] = """
+        INSERT INTO link_category(
+            name, created_at, updated_at
+        )
+        VALUES (:name, :created_at, :updated_at)
+        RETURNING *
+    """
+    id: int
+    name: str
+    created_at: datetime = field(default_factory=utcnow)
+    updated_at: datetime | None = None
+
+    @classmethod
+    def insert(
+        cls,
+        name: str,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
+    ) -> Self:
+        return super().insert(
+            name=name,
+            created_at=created_at if created_at is not None else utcnow(),
+            updated_at=updated_at,
+        )
+
+    @classmethod
+    def by_name(cls, name: str) -> Self:
+        return cls.parse(
+            super()
+            .database.query("SELECT * FROM link_category WHERE name=:name", name=name)
+            .fetchone()
+        )
+
+
+class ContactLink(Table):
+    CREATE_TABLE: ClassVar[str] = """
+        CREATE TABLE IF NOT EXISTS contact_link(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            href TEXT NOT NULL,
+            category_id INTEGER NOT NULL REFERENCES link_category(id) ON UPDATE CASCADE ON DELETE CASCADE,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME
+        )
+    """
+    INSERT_ROW: ClassVar[str] = """
+        INSERT INTO contact_link(
+            name, href, category_id, created_at, updated_at
+        )
+        VALUES (:name, :href, :category_id, :created_at, :updated_at)
+        RETURNING *
+    """
+    id: int
+    name: str
+    href: str
+    category_id: int
+    created_at: datetime = field(default_factory=utcnow)
+    updated_at: datetime | None = None
+
+    @property
+    def category(self) -> LinkCategory:
+        c = database.link_categories.get(id=self.category_id)
+        assert c is not None
+        return c
+
+    @classmethod
+    def insert(
+        cls,
+        name: str,
+        href: str,
+        category_id: int,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
+    ) -> Self:
+        return super().insert(
+            name=name,
+            href=href,
+            category_id=category_id,
+            created_at=created_at if created_at is not None else utcnow(),
+            updated_at=updated_at,
+        )
+
+    @classmethod
+    def update(cls, id: int, name: str, href: str, category_id: int):
+        row = database.query(
+            "update contact_link set name=:name, href=:href, category_id=:category_id where id=:id returning *",
+            id=id,
+            name=name,
+            href=href,
+            category_id=category_id,
+        ).fetchone()
+        return cls.parse(row)
+
+    @classmethod
+    def by_category(cls, category_id: int) -> list[Self]:
+        return [
+            cls.parse(row)
+            for row in database.query(
+                "SELECT * FROM contact_link WHERE category_id=:category_id",
+                category_id=category_id,
+            )
+        ]
+
+    @classmethod
+    def group_by_category(cls) -> dict[LinkCategory, list[Self]]:
+        return {
+            category: cls.by_category(category.id)
+            for category in database.link_categories.iter()
+        }
 
 
 class ContactFormSubmission(Table):
@@ -319,6 +439,8 @@ class WebPushSubscription(Table):
 
 class Database(DatabaseBase):
     uri: str = config.uri
+    link_categories = LinkCategory
+    contact_links = ContactLink
     contact_form_submissions = ContactFormSubmission
     users = User
     web_push_subscriptions = WebPushSubscription
