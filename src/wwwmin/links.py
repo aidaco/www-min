@@ -7,8 +7,30 @@ from . import security, database
 api = APIRouter()
 
 
+@api.post(
+    "/api/links/categories", status_code=201, response_model=database.LinkCategory
+)
+async def post_category(
+    db: database.depends,
+    _: security.authenticated,
+    name: Annotated[str, Form()],
+):
+    category = db.link_categories.insert(name=name)
+    return category
+
+
+@api.post("/form/links/categories")
+async def post_category_form(
+    db: database.depends,
+    _: security.authenticated,
+    name: Annotated[str, Form()],
+):
+    db.link_categories.insert(name=name)
+    return RedirectResponse("/admin.html", status_code=302)
+
+
 @api.post("/api/links", status_code=201, response_model=database.ContactLink)
-async def post_submission(
+async def post_link(
     db: database.depends,
     _: security.authenticated,
     name: Annotated[str, Form()],
