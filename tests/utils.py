@@ -33,12 +33,15 @@ def wait_for_healthcheck(
     return resp
 
 
+BASE_CONFIG = {
+    "database": {"uri": ":memory:"},
+    "operating_hours": {"enabled": False},
+}
+
+
 @contextlib.contextmanager
 def run_server(
-    config: dict = {
-        "database": {"uri": ":memory:"},
-        "operating_hours": {"enabled": False},
-    },
+    config: dict = BASE_CONFIG,
     frozendt: datetime.datetime = datetime.datetime.now(
         tz=zoneinfo.ZoneInfo("America/New_York")
     ),

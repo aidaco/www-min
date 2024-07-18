@@ -32,7 +32,7 @@ repos:
       # stages: [push]
       types: [python]
       name: pytest-check
-      entry: python -m pytest
+      entry: python -m pytest -x
       language: system
       pass_filenames: false
       always_run: true

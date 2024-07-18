@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from . import security, static, templates, database, operating_hours
+from . import security, static, templates, database, operating_hours, links
 
 
 @asynccontextmanager
@@ -36,19 +36,35 @@ api = APIRouter(lifespan=lifespan)
 
 
 @api.get("/", response_class=HTMLResponse)
-def get_bare_index(
-    templates: depends, request: Request, operating: operating_hours.depends
+async def get_bare_index(
+    db: database.depends,
+    templates: depends,
+    request: Request,
+    operating: operating_hours.depends,
 ):
-    return get_index(templates, request, operating)
+    return await get_index(db, templates, request, operating)
 
 
 @api.get("/index.html", response_class=HTMLResponse)
-def get_index(templates: depends, request: Request, _: operating_hours.depends):
-    return templates.TemplateResponse(request, "index.html", context={})
+async def get_index(
+    db: database.depends,
+    templates: depends,
+    request: Request,
+    _: operating_hours.depends,
+):
+    if not operating_hours.open_now():
+        return operating_hours.closed_index(templates, request)
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        context={"links_by_category": links.get_contact_links(db)},
+    )
 
 
 @api.get("/login.html", response_class=HTMLResponse)
-def get_login(templates: depends, request: Request, next: Annotated[str, Query()] = ""):
+async def get_login(
+    templates: depends, request: Request, next: Annotated[str, Query()] = ""
+):
     return templates.TemplateResponse(
         request, "login.html", context={"next_url": quote(next)}
     )
@@ -65,6 +81,8 @@ async def get_admin(
         request,
         "admin.html",
         context={
+            "links_by_category": db.contact_links.group_by_category(),
+            "categories": db.link_categories.iter(),
             "active_submissions": db.contact_form_submissions.active(),
             "archived_submissions": db.contact_form_submissions.archived(),
         },

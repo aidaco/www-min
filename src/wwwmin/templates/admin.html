@@ -5,12 +5,14 @@
 <title>Admin</title>
 {% endblock %}
 {% block body %}
-<div class="card">
-  <h1>Admin</h1>
+<div class="card shadow">
+  <div class="title">
+    <h1>Admin</h1>
+  </div>
 </div>
 
-<div class="card accordion accordion-open" data-accordion="active">
-  <button class="toggle" data-accordion="active">Active</button>
+<div class="card accordion shadow" data-accordion="active">
+  <button class="toggle" data-accordion="active">Submissions</button>
   <div class="content" data-accordion="active">
     <table>
       <tr>
@@ -40,8 +42,8 @@
   </div>
 </div>
 
-<div class="card accordion" data-accordion="archived">
-  <button class="toggle" data-accordion="archived">Archived</button>
+<div class="card accordion shadow" data-accordion="archived">
+  <button class="toggle" data-accordion="archived">Archived Submissions</button>
   <div class="content" data-accordion="archived">
     <table>
       <tr>
@@ -73,10 +75,79 @@
   </div>
 </div>
 
-<div class="card accordion" data-accordion="settings">
+<div class="card accordion shadow" data-accordion="settings">
   <button class="toggle" data-accordion="settings">Settings</button>
   <div class="content" data-accordion="settings">
-    <button class="push-subscribe">Subscribe to web push notifications</button>
+    <div class="settings">
+      <button class="push-subscribe">Subscribe to web push notifications</button>
+    </div>
+  </div>
+</div>
+
+<div class="card accordion shadow" data-accordion="links">
+  <button class="toggle" data-accordion="links">Links</button>
+  <div class="content" data-accordion="links">
+    {% for category, links in links_by_category.items() %}
+    <div class="link-edit">
+      <h2>{{ category.name }}</h2>
+      <ul>
+        {% for link in links %}
+        <form action="/form/links/update" method="post">
+          <input id="{{ category.name }}-{{ link.name }}-id-input" type="text" name="id" hidden value="{{ link.id }}">
+
+          <div class="input-group shadow">
+            <label for="{{ category.name }}-{{ link.name }}-name-input">name</label>
+            <input id="{{ category.name }}-{{ link.name }}-name-input" type="text" name="name" value="{{ link.name }}">
+          </div>
+
+          <div class="input-group shadow">
+            <label for="{{ category.name }}-{{ link.name }}-href-input">href</label>
+            <input id="{{ category.name }}-{{ link.name }}-href-input" type="text" name="href" value="{{ link.href }}">
+          </div>
+
+          <div class="input-group shadow">
+            <label for="{{ category.name }}-{{ link.name }}-category-select">category</label>
+            <select id="{{ category.name }}-{{ link.name }}-category-select" name="category_id">
+              {% for cat in categories %}
+              <option value="{{ cat.id }}" {% if link.category_id==cat.id %}selected{% endif %}>{{ cat.name|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="input-group shadow">
+            <input type="submit" value="Update"></input>
+          </div>
+        </form>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+    <h2>Create</h2>
+    <form action="/form/links" method="post">
+      <div class="input-group shadow">
+        <label for="create-name-input">Name</label>
+        <input id="create-name-input" type="text" name="name" placeholder="name">
+      </div>
+
+      <div class="input-group shadow">
+        <label for="create-href-input">href</label>
+        <input id="create-href-input" type="text" name="href" placeholder="href">
+      </div>
+
+      <div class="input-group shadow">
+        <label for="create-category-select">category</label>
+        <select id="create-category-select" name="category_id">
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="input-group shadow">
+        <input type="submit" value="Update"></input>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}
