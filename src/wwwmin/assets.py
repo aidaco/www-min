@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from . import security, static, templates, database, operating_hours
+from . import security, static, templates, database, operating_hours, links
 
 
 @asynccontextmanager
@@ -47,7 +47,7 @@ async def get_index(db: database.depends, templates: depends, request: Request):
     return templates.TemplateResponse(
         request,
         "index.html",
-        context={"links_by_category": db.contact_links.group_by_category()},
+        context={"links_by_category": links.contact_links()},
     )
 
 

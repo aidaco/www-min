@@ -1,5 +1,21 @@
 import requests
-from .utils import run_server, wait_for_healthcheck
+from .utils import run_server, wait_for_healthcheck, BASE_CONFIG
+
+
+def test_config():
+    test_value = "mailto:contact@aidan.software"
+    with run_server(
+        config=BASE_CONFIG
+        | {
+            "links": {
+                "links": [{"category": "contact", "name": "email", "href": test_value}]
+            }
+        }
+    ):
+        wait_for_healthcheck()
+        data = requests.get("http://localhost:8000/").text
+        print(data)
+        assert test_value in data
 
 
 def test_api():

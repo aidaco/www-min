@@ -1,8 +1,51 @@
-from typing import Annotated
+from dataclasses import dataclass, field
+
+from typing import Annotated, Protocol
 from fastapi import APIRouter, Form
 from fastapi.responses import RedirectResponse
 
 from . import security, database
+from .config import config as main_config
+
+
+class CategoryType(Protocol):
+    @property
+    def name(self) -> str: ...
+
+
+class LinkType(Protocol):
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def href(self) -> str: ...
+
+
+@dataclass(frozen=True)
+class Category:
+    name: str
+
+
+@dataclass(frozen=True)
+class Link:
+    category: str
+    name: str
+    href: str
+
+
+@main_config.section("links")
+class config:
+    links: list[Link] = field(default_factory=list)
+
+
+def contact_links() -> dict[CategoryType, list[LinkType]]:
+    result: dict[CategoryType, list[LinkType]] = (
+        database.database.contact_links.group_by_category()  # type: ignore
+    )
+    for link in config.links:
+        result.setdefault(Category(link.category), []).append(link)
+    return result
+
 
 api = APIRouter()
 
