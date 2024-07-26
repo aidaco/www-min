@@ -50,7 +50,7 @@ def run_server(
     def _run_target(config, frozendt):
         import wwwmin.config
 
-        wwwmin.config.load(config)
+        wwwmin.config.load("wwwmin", config)
         import wwwmin.operating_hours
 
         with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:

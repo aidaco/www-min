@@ -15,9 +15,14 @@ except ImportError:
 
 @dataclass
 class Config:
+    name: str
     data: Mapping = field(default_factory=dict)
     section_classes: dict[str, type] = field(default_factory=dict)
     section_instances: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def datadir(self) -> Path:
+        return Path(appdirs.user_data_dir(self.name)).resolve()
 
     def parse(self, section_class: type, data: dict):
         return TypeAdapter(section_class).validate_python(data)
@@ -52,12 +57,12 @@ class Config:
         return inner
 
 
-def load(data: Mapping) -> None:
+def load(name: str, data: Mapping) -> None:
     global config
-    config = Config(data)
+    config = Config(name, data)
 
 
-def loads(content: str = "", format: str = "toml") -> None:
+def loads(name: str, content: str = "", format: str = "toml") -> None:
     global config
     match format:
         case "toml":
@@ -68,10 +73,11 @@ def loads(content: str = "", format: str = "toml") -> None:
             data = yaml.safe_load(content)
         case _:
             raise ValueError("Unsupported config format.")
-    load(data)
+    load(name, data)
 
 
 def load_path(
+    name: str,
     path: Path = Path(appdirs.user_config_dir("wwwmin")) / "config.toml",
 ) -> None:
     global config
@@ -89,8 +95,8 @@ def load_path(
                 data = yaml.safe_load(fp)
         case _:
             data = {}
-    load(data)
+    load(name, data)
 
 
 config: Config
-load_path()
+load_path("wwwmin")

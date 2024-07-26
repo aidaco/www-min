@@ -1,5 +1,4 @@
 import sqlite3
-from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Annotated, ClassVar, Self
 from datetime import datetime
@@ -7,7 +6,6 @@ from contextlib import contextmanager
 import json
 import re
 import functools
-import appdirs
 
 from fastapi import Depends
 
@@ -30,9 +28,7 @@ _load_pysqlite3_if_available()
 
 @main_config.section("database")
 class config:
-    uri: str = str(
-        (Path(appdirs.user_data_dir("wwwmin")) / "database.sqlite3").resolve()
-    )
+    uri: str = str(main_config.datadir / "database.sqlite3")
 
 
 class TableMeta(type):
