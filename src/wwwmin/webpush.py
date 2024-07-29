@@ -1,4 +1,5 @@
 from typing import Annotated, Any
+from pathlib import Path
 import json
 
 from fastapi import APIRouter, Body
@@ -12,7 +13,7 @@ from .config import config as main_config
 
 @main_config.section("webpush")
 class config:
-    vapid_private_key_file: str = str(main_config.datadir / "vapid-private-key.pem")
+    vapid_private_key_file: Path = main_config.datadir / "vapid-private-key.pem"
 
 
 vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
