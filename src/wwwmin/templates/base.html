@@ -5,7 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    let style = getComputedStyle(document.documentElement).getPropertyValue('--primary')
+    let elem = document.querySelector('meta[name="theme-color"]')
+    console.log(`found meta elem ${elem}`)
+    console.log(document.documentElement)
+    elem.content = style
+    console.log(`set meta.content to ${style}`)
+  </script>
   {% block head %}
   {% endblock %}
 </head>
