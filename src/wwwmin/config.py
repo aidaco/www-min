@@ -24,6 +24,10 @@ class Config:
     def datadir(self) -> Path:
         return Path(appdirs.user_data_dir(self.name)).resolve()
 
+    @property
+    def configdir(self) -> Path:
+        return Path(appdirs.user_config_dir(self.name)).resolve()
+
     def parse(self, section_class: type, data: dict):
         return TypeAdapter(section_class).validate_python(data)
 

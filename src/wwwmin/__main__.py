@@ -1,4 +1,5 @@
-from typing import Literal
+from pathlib import Path
+from typing import Literal, cast
 import cyclopts
 from rich.console import Console
 
@@ -24,6 +25,20 @@ def show(format: Literal["json", "toml", "yaml"] = "toml"):
     import wwwmin.config
 
     console.print(wwwmin.config.config.dumps(format), markup=False)
+
+
+@config_cli.command()
+def init(path: Path | None = None):
+    import wwwmin.server
+    import wwwmin.config
+
+    path = path or wwwmin.config.config.configdir / "config.toml"
+    format = path.suffix.lstrip(".").lower()
+    if format not in {"toml", "yaml", "json"}:
+        raise ValueError(f"Unsupported config format: {format}")
+    format = cast(Literal["toml", "json", "yaml"], format)
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(wwwmin.config.config.dumps(format))
 
 
 @user_cli.command()
