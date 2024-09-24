@@ -16,6 +16,7 @@ authors = [
 dependencies = [
   "rich",
   "fastapi",
+  "jinja2",
   "python-multipart",
   "uvicorn",
   "PyJWT",
