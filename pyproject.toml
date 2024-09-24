@@ -20,7 +20,6 @@ dependencies = [
   "uvicorn",
   "PyJWT",
   "argon2-cffi",
-  "pysqlite3-binary",
   "pywebpush",
   "py_vapid",
   "requests",
@@ -31,6 +30,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+pysqlite3 = ["pysqlite3-binary"]
 dev = ["pre-commit", "pyright", "ruff", "mypy", "types-requests", "types-toml"]
 test = ["pytest", "coverage"]
 

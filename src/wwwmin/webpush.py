@@ -16,6 +16,7 @@ class config:
     vapid_private_key_file: Path = main_config.datadir / "vapid-private-key.pem"
 
 
+config.vapid_private_key_file.parent.mkdir(parents=True, exist_ok=True)
 vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
 api = APIRouter()
 
