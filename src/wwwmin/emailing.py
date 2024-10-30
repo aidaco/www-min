@@ -20,8 +20,6 @@ class config:
 
 
 async def notify_submission(submission: database.ContactFormSubmission):
-    if not config.enabled:
-        return
     msg = email.message.EmailMessage()
     msg["From"] = config.username
     msg["To"] = config.to
@@ -33,8 +31,6 @@ async def notify_submission(submission: database.ContactFormSubmission):
 
 
 async def notify_exception(host, port, method, url, exc_type, exc_value, exc_tb):
-    if not config.enabled:
-        return
     msg = email.message.EmailMessage()
     msg["From"] = config.username
     msg["To"] = config.to
