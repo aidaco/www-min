@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, TypedDict, Unpack
 from urllib.parse import quote
 
 import jwt
@@ -15,13 +16,15 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+import appbase
+import appbase.database
 
 from .util import utcnow
 from . import database
-from .config import config as main_config
+from .config import configconfig
 
 
-@main_config.section("security")
+@configconfig.section("security")
 class config:
     jwt_secret: str = "correct horse battery staple"
     jwt_ttl: timedelta = timedelta(days=30)
@@ -61,18 +64,44 @@ def decode_token(token: str) -> dict:
         raise AuthenticationError("Invalid token.")
 
 
-def create_user(username: str, password: str) -> database.User:
-    password_hash = hash_password(password)
-    return database.database.users.insert(username, password_hash)
+class UserParams(TypedDict):
+    username: str
+    password: str
 
 
-def login_user(username: str, password: str) -> tuple[database.User, str]:
-    user = database.database.users.by_name(username)
-    if not user:
-        raise AuthenticationError("User not found.")
-    verify_password(user.password_hash, password)
-    token = encode_token(user_id=user.id)
-    return user, token
+@dataclass
+class UserData:
+    username: str
+    password: str
+
+    @property
+    def password_hash(self) -> str:
+        return hash_password(self.password)
+
+
+@dataclass
+class User:
+    id: appbase.INTPK
+    username: Annotated[str, "UNIQUE"]
+    password_hash: str
+
+
+class UserStore(appbase.Table[User]):
+    model = User
+
+    def by_name(self, username: str) -> User:
+        return self.select().where(username=username).execute().one()
+
+    def create_user(self, **params: Unpack[UserParams]) -> User:
+        return self.insert().values(UserData(**params)).execute().one()
+
+    def login_user(self, username: str, password: str) -> tuple[User, str]:
+        user = self.by_name(username)
+        if not user:
+            raise AuthenticationError("User not found.")
+        verify_password(user.password_hash, password)
+        token = encode_token(user_id=user.id)
+        return user, token
 
 
 class LoginRequired(Exception):
@@ -86,26 +115,28 @@ async def authenticate(
     db: database.depends,
     cookie: Annotated[str | None, Cookie(alias="Authorization")] = None,
     header: Annotated[str | None, Depends(oauth2_scheme)] = None,
-) -> database.User | None:
+) -> User | None:
     token = cookie or header
     if token is None:
         raise LoginRequired("No authorization found.")
     try:
         user_id = decode_token(token)
-        return db.users.get(user_id)
+        return UserStore(connection=db).select().where(id=user_id).execute().one()
     except AuthenticationError:
         raise LoginRequired("Invalid authentication found.")
 
 
-authenticated = Annotated[database.User, Depends(authenticate)]
+authenticated = Annotated[User, Depends(authenticate)]
 
 
 @api.post("/api/token")
-async def submit_login(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def submit_login(
+    db: database.depends, form: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
     username = form.username
     password = form.password
     try:
-        _, token = login_user(username, password)
+        _, token = UserStore(connection=db).login_user(username, password)
     except AuthenticationError:
         raise HTTPException(status_code=400, detail="Authentication failed.")
     return {"access_token": token, "token_type": "bearer"}
@@ -113,12 +144,13 @@ async def submit_login(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
 @api.post("/form/login")
 async def submit_login_form(
+    db: database.depends,
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     next: Annotated[str, Form()] = "/admin.html",
 ):
     try:
-        _, token = login_user(username, password)
+        _, token = UserStore(connection=db).login_user(username, password)
     except AuthenticationError:
         return RedirectResponse(f"/login.html?next={next!r}", status_code=302)
     response = RedirectResponse("/admin.html", status_code=302)

@@ -9,10 +9,10 @@ from typing import Iterator, Annotated
 from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
 
-from .config import config as main_config
+from .config import configconfig
 
 
-@main_config.section("operating_hours")
+@configconfig.section("operating_hours")
 class config:
     enabled: bool = True
     schedule: dict[str, tuple[time, time] | None] = field(

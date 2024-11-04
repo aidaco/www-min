@@ -5,11 +5,11 @@ import email.message
 from fastapi import Request, FastAPI
 from fastapi.responses import PlainTextResponse
 
-from .config import config as main_config
-from . import database
+from .config import configconfig
+from . import database, submissions
 
 
-@main_config.section("emailing")
+@configconfig.section("emailing")
 class config:
     enabled: bool = False
     host: str = ""
@@ -19,7 +19,7 @@ class config:
     to: str = ""
 
 
-async def notify_submission(submission: database.ContactFormSubmission):
+async def notify_submission(submission: submissions.ContactFormSubmission):
     if not config.enabled:
         return
     msg = email.message.EmailMessage()
