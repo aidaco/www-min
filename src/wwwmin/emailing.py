@@ -6,7 +6,7 @@ from fastapi import Request, FastAPI
 from fastapi.responses import PlainTextResponse
 
 from .config import configconfig
-from . import database, submissions
+from . import submissions
 
 
 @configconfig.section("emailing")
