@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Annotated, NotRequired, Protocol, TypedDict, Unpack
+from typing import Annotated, Any, Iterator, Protocol, Self
 import itertools
-import sqlite3
+import pydantic
 
 from fastapi import APIRouter, Form
 from fastapi.responses import RedirectResponse
@@ -46,14 +46,7 @@ class config:
     links: list[Link] = field(default_factory=list)
 
 
-class LinkCategoryParams(TypedDict):
-    name: str
-    created_at: NotRequired[datetime]
-    updated_at: NotRequired[datetime]
-
-
-@dataclass
-class LinkCategoryData:
+class LinkCategoryData(pydantic.BaseModel):
     name: str
     created_at: datetime = field(default_factory=utcnow)
     updated_at: datetime | None = None
@@ -61,22 +54,38 @@ class LinkCategoryData:
 
 @dataclass
 class LinkCategory:
-    id: appbase.INTPK
+    id: appbase.database.INTPK
     name: str
     created_at: datetime
     updated_at: datetime | None
 
+    @classmethod
+    def get_by_id(cls, id: int) -> Self | None:
+        return database.connection.table(cls).select().where(id=id).execute().one()
 
-class ContactLinkParams(TypedDict):
-    name: str
-    href: str
-    category_id: int
-    created_at: NotRequired[datetime]
-    updated_at: NotRequired[datetime]
+    @classmethod
+    def get_by_name(cls, name: str) -> Self | None:
+        return database.connection.table(cls).select().where(name=name).execute().one()
+
+    @classmethod
+    def create(cls, **kwargs: Any) -> Self | None:
+        return (
+            database.connection.table(cls)
+            .insert()
+            .values(LinkCategoryData(**kwargs))
+            .execute()
+            .one()
+        )
+
+    @classmethod
+    def group_by_id(cls) -> dict[int, Self]:
+        return {
+            link.id: link
+            for link in database.connection.table(cls).select().execute().iter()
+        }
 
 
-@dataclass
-class ContactLinkData:
+class ContactLinkData(pydantic.BaseModel):
     name: str
     href: str
     category_id: int
@@ -86,7 +95,7 @@ class ContactLinkData:
 
 @dataclass
 class ContactLink:
-    id: appbase.INTPK
+    id: appbase.database.INTPK
     name: str
     href: str
     category_id: Annotated[
@@ -95,50 +104,53 @@ class ContactLink:
     created_at: datetime
     updated_at: datetime | None
 
-
-class LinkCategoryStore(appbase.Table[LinkCategory]):
-    model = LinkCategory
-
-    def by_id(self, id: int) -> LinkCategory:
-        return self.select().where("id=:id").execute(id=id).one()
-
-    def by_name(self, name: str) -> LinkCategory:
-        return self.select().where("name=:name").execute(name=name).one()
-
-    def add_category(self, **params: Unpack[LinkCategoryParams]) -> LinkCategory:
-        return self.insert().values(LinkCategoryData(**params)).execute().one()
-
-
-class ContactLinkStore(appbase.Table[ContactLink]):
-    model = ContactLink
-
-    def by_category(self, category_id: int) -> list[ContactLink]:
+    @classmethod
+    def create(cls, **kwargs: Any) -> Self | None:
         return (
-            self.select()
-            .where("category_id=:category_id")
-            .execute(category_id=category_id)
-            .all()
+            database.connection.table(cls)
+            .insert()
+            .values(ContactLinkData(**kwargs))
+            .execute()
+            .one()
         )
 
-    def group_by_category(self) -> dict[int, list[ContactLink]]:
+    @classmethod
+    def iter_all(cls) -> Iterator[Self]:
+        yield from database.connection.table(cls).select().execute().iter()
+
+    @classmethod
+    def get_by_category(cls, category_id: int) -> Iterator[Self]:
+        yield from (
+            database.connection.table(cls)
+            .select()
+            .where(category_id=category_id)
+            .execute()
+            .iter()
+        )
+
+    @classmethod
+    def group_by_category(cls) -> dict[int, list[Self]]:
+        table = database.connection.table(cls)
         return {
             key: list(group)
             for key, group in itertools.groupby(
-                self.select().groupby("category_id").execute().iter(),
+                table.select().groupby("category_id").execute().iter(),
                 key=lambda row: row.category_id,
             )
         }
 
 
-def get_contact_links(db: sqlite3.Connection) -> dict[Category, list[Link]]:
-    db_links = ContactLinkStore(connection=db).group_by_category()
-    categories = LinkCategoryStore(connection=db).select().execute().all()
-    result = {
-        Category(name=category.name): [
-            Link(category.name, link.name, link.href) for link in db_links[category.id]
+def get_contact_links() -> dict[Category, list[Link]]:
+    db_links = ContactLink.group_by_category()
+    db_categories = LinkCategory.group_by_id()
+    result = {}
+    for category_id, links in db_links.items():
+        category = db_categories[category_id]
+        result[Category(name=category.name)] = [
+            Link(category.name, link.name, link.href) for link in links
         ]
-        for category in categories
-    }
+    for link in config.links:
+        result.setdefault(Category(name=link.category), []).append(link)
     return result
 
 
@@ -147,74 +159,60 @@ api = APIRouter()
 
 @api.post("/api/links/categories", status_code=201, response_model=LinkCategory)
 async def post_category(
-    db: database.depends,
     _: security.authenticated,
     name: Annotated[str, Form()],
 ):
-    category = (
-        LinkCategoryStore(connection=db).insert().values(name=name).execute().one()
-    )
+    category = LinkCategory.create(name=name)
     return category
 
 
 @api.post("/form/links/categories")
 async def post_category_form(
-    db: database.depends,
     _: security.authenticated,
     name: Annotated[str, Form()],
 ):
-    LinkCategoryStore(connection=db).insert().values(name=name).execute().one()
+    LinkCategory.create(name=name)
     return RedirectResponse("/admin.html", status_code=302)
 
 
 @api.post("/api/links", status_code=201, response_model=ContactLink)
 async def post_link(
-    db: database.depends,
     _: security.authenticated,
     name: Annotated[str, Form()],
     href: Annotated[str, Form()],
     category_id: Annotated[int, Form()],
 ):
-    link = (
-        ContactLinkStore(connection=db)
-        .insert()
-        .values(name=name, href=href, category_id=category_id)
-        .execute()
-        .one()
-    )
-    return link
+    return ContactLink.create(name=name, href=href, category_id=category_id)
 
 
 @api.post("/form/links")
 async def post_link_create_form(
-    db: database.depends,
     _: security.authenticated,
     name: Annotated[str, Form()],
     href: Annotated[str, Form()],
     category_id: Annotated[int, Form()],
 ):
-    ContactLinkStore(connection=db).insert().values(
+    database.connection.table(ContactLink).insert().values(
         name=name, href=href, category_id=category_id
     ).execute()
     return RedirectResponse("/admin.html", status_code=302)
 
 
 @api.get("/api/links", response_model=list[ContactLink])
-async def get_links(db: database.depends):
-    return ContactLinkStore(connection=db).select().execute().all()
+async def get_links():
+    return list(ContactLink.iter_all())
 
 
 @api.post("/api/links/update", response_model=ContactLink)
 async def update_link(
     _: security.authenticated,
-    db: database.depends,
     id: Annotated[int, Form()],
     name: Annotated[str, Form()],
     href: Annotated[str, Form()],
     category_id: Annotated[int, Form()],
 ):
     return (
-        ContactLinkStore(connection=db)
+        database.connection.table(ContactLink)
         .update()
         .set(name=name, href=href, category_id=category_id)
         .where(id=id)
@@ -226,13 +224,12 @@ async def update_link(
 @api.post("/form/links/update")
 async def post_link_update_form(
     _: security.authenticated,
-    db: database.depends,
     id: Annotated[int, Form()],
     name: Annotated[str, Form()],
     href: Annotated[str, Form()],
     category_id: Annotated[int, Form()],
 ):
-    ContactLinkStore(connection=db).update().set(
+    database.connection.table(ContactLink).update().set(
         name=name, href=href, category_id=category_id
     ).where(id=id).execute()
     return RedirectResponse("/admin.html", status_code=302)

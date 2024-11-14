@@ -1,19 +1,13 @@
-import sqlite3
-from typing import Annotated
+from pathlib import Path
 
-from fastapi import Depends, Request
-
+import appbase
 
 from wwwmin.config import configconfig, config as main_config
 
 
 @configconfig.section("database")
 class config:
-    uri: str = str(main_config.datadir / "database.sqlite3")
+    uri: Path | str = main_config.datadir / "database.sqlite3"
 
 
-def _depends_database(request: Request) -> sqlite3.Connection:
-    return request.app.state.db
-
-
-depends = Annotated[sqlite3.Connection, Depends(_depends_database)]
+connection = appbase.database.connect(config.uri)

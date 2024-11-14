@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from appbase import ConfigConfig
+import appbase
 
-configconfig = ConfigConfig.load_from(name="wwwmin")
+configconfig = appbase.config.load_from(name="wwwmin")
 
 
 @configconfig.root
