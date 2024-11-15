@@ -19,7 +19,7 @@ class config:
     to: str = ""
 
 
-async def notify_submission(submission: submissions.ContactFormSubmission):
+async def notify_submission(submission: submissions.ContactFormSubmission) -> None:
     msg = email.message.EmailMessage()
     msg["From"] = config.username
     msg["To"] = config.to
@@ -77,3 +77,7 @@ async def notify_unhandled_exceptions_handler(
 
 def install_exception_handler(app: FastAPI):
     app.exception_handler(Exception)(notify_unhandled_exceptions_handler)
+
+
+if config.enabled:
+    submissions.ContactFormSubmission.subscribe(notify_submission)

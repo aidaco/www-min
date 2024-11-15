@@ -12,14 +12,14 @@ from typing import Annotated
 import psutil
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 
-from .config import config as main_config
+from .config import configconfig
 from wwwmin.security import authenticated
 
 
 api = APIRouter()
 
 
-@main_config.section("cd")
+@configconfig.section("cd")
 class config:
     enabled: bool = True
     vcs_package_url: str = "git+https://github.com/aidaco/www-min"

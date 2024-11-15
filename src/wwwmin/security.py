@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Iterator, Self
 from urllib.parse import quote
 
 import jwt
@@ -17,7 +17,6 @@ from fastapi import (
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import appbase
-from appbase.database import Table
 
 from .util import utcnow
 from . import database
@@ -89,29 +88,30 @@ class User:
     password_hash: str
 
     @classmethod
+    def iterall(cls) -> Iterator[Self]:
+        yield from database.connection.table(cls).select().execute().iter()
+
+    @classmethod
     def get_by_id(cls, id: int) -> Self | None:
-        table = Table(cls)
-        return (
-            table.select().where(id=id).execute(table.cursor(database.connection)).one()
-        )
+        return database.connection.table(cls).select().where(id=id).execute().one()
 
     @classmethod
     def get_by_name(cls, username: str) -> Self | None:
-        table = Table(cls)
         return (
-            table.select()
+            database.connection.table(cls)
+            .select()
             .where(username=username)
-            .execute(table.cursor(database.connection))
+            .execute()
             .one()
         )
 
     @classmethod
     def create(cls, username: str, password: str) -> Self | None:
-        table = Table(cls)
         return (
-            table.insert()
-            .values(UserData(username=username, password=password))
-            .execute(table.cursor(database.connection))
+            database.connection.table(cls)
+            .insert()
+            .values(username=username, password_hash=_hash_password(password))
+            .execute()
             .one()
         )
 

@@ -24,7 +24,7 @@ def show(format: Literal["json", "toml", "yaml"] = "toml"):
     import wwwmin.server
     import wwwmin.config
 
-    console.print(wwwmin.config.config.dumps(format), markup=False)
+    console.print(wwwmin.config.configconfig.dumps(format), markup=False)
 
 
 @config_cli.command()
@@ -32,27 +32,27 @@ def init(path: Path | None = None):
     import wwwmin.server
     import wwwmin.config
 
-    path = path or wwwmin.config.config.configdir / "config.toml"
+    path = path or wwwmin.config.configconfig.source.configdir / "config.toml"
     format = path.suffix.lstrip(".").lower()
     if format not in {"toml", "yaml", "json"}:
         raise ValueError(f"Unsupported config format: {format}")
     format = cast(Literal["toml", "json", "yaml"], format)
     path.parent.mkdir(exist_ok=True)
-    path.write_text(wwwmin.config.config.dumps(format))
+    path.write_text(wwwmin.config.configconfig.dumps(format))
 
 
 @user_cli.command()
 def create(username: str, password: str) -> None:
     import wwwmin.security
 
-    console.print(wwwmin.security.create_user(username, password))
+    console.print(wwwmin.security.User.create(username, password))
 
 
 @user_cli.command()
 def list() -> None:
-    import wwwmin.database
+    import wwwmin.security
 
-    console.print(wwwmin.database.database.users.iter())
+    console.print(*wwwmin.security.User.iterall(), sep="\n")
 
 
 if __name__ == "__main__":

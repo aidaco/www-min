@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
-from typing import Annotated, Any, NotRequired, TypedDict, Unpack
+from dataclasses import dataclass
+from typing import Annotated, Any, Iterator, Self
 from pathlib import Path
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Body
 from fastapi.responses import PlainTextResponse
@@ -13,63 +13,60 @@ import appbase
 from . import security, database
 from .submissions import ContactFormSubmission
 from .config import configconfig
-
-
-def utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
+from .util import utcnow
+from wwwmin import submissions
 
 
 @configconfig.section("webpush")
 class config:
+    enabled: bool = False
     vapid_private_key_file: Path = configconfig.source.datadir / "vapid-private-key.pem"
-
-
-config.vapid_private_key_file.parent.mkdir(parents=True, exist_ok=True)
-vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
-
-
-class WebPushSubscriptionParams(TypedDict):
-    user_id: int
-    subscription: str
-    subscribed_at: NotRequired[datetime]
-
-
-@dataclass
-class WebPushSubscriptionData:
-    user_id: int
-    subscription: str
-    subscribed_at: datetime = field(default_factory=utcnow)
 
 
 @dataclass
 class WebPushSubscription:
-    id: appbase.INTPK
+    id: appbase.database.INTPK
     user_id: Annotated[int, "REFERENCES user(id) ON UPDATE CASCADE ON DELETE CASCADE"]
     subscription: str
     subscribed_at: datetime
 
-
-class WebPushSubscriptionStore(appbase.Table[WebPushSubscription]):
-    model = WebPushSubscription
-
+    @classmethod
     def subscribe_user(
-        self, **params: Unpack[WebPushSubscriptionParams]
-    ) -> WebPushSubscription:
-        data = WebPushSubscriptionData(**params)
-        return self.insert().values(data).execute().one()
+        cls, user_id: int, subscription: str, subscribed_at: datetime | None = None
+    ) -> Self | None:
+        return (
+            database.connection.table(cls)
+            .insert()
+            .values(
+                user_id=user_id,
+                subscription=subscription,
+                subscribed_at=subscribed_at or utcnow(),
+            )
+            .returning("*")
+            .execute()
+            .one()
+        )
 
-    def by_user_id(self, user_id: int) -> list[WebPushSubscription]:
-        return self.select().where(user_id=user_id).execute().all()
+    @classmethod
+    def get_by_user_id(cls, user_id: int) -> Iterator[Self]:
+        yield from (
+            database.connection.table(cls)
+            .select()
+            .where(user_id=user_id)
+            .execute()
+            .iter()
+        )
+
+    @classmethod
+    def iterall(cls) -> Iterator[Self]:
+        yield from (database.connection.table(cls).select().execute().iter())
 
 
 api = APIRouter()
 
 
-async def notify_submission(
-    store: WebPushSubscriptionStore, submission: ContactFormSubmission
-) -> None:
+async def notify_submission(submission: ContactFormSubmission) -> None:
     await notify_all(
-        store,
         {
             "title": f"Submission - {submission.email} {submission.phone}",
             "body": f"{submission.message}",
@@ -77,17 +74,16 @@ async def notify_submission(
     )
 
 
-async def notify_all(store: WebPushSubscriptionStore, data: dict) -> None:
+async def notify_all(data: dict) -> None:
     payload = json.dumps(data)
-    for subscription in store.select().execute().iter():
+    vapid_pk = str(config.vapid_private_key_file.resolve())
+    for subscription in WebPushSubscription.iterall():
         try:
             webpush(
                 json.loads(subscription.subscription),
                 data=payload,
-                vapid_private_key=str(config.vapid_private_key_file.resolve()),
-                vapid_claims={
-                    "sub": "mailto:push@aidan.software",
-                },
+                vapid_private_key=vapid_pk,
+                vapid_claims={"sub": "mailto:push@aidan.software"},
             )
         except WebPushException as ex:
             if ex.response and ex.response.json():
@@ -111,16 +107,15 @@ async def get_vapid_public_key():
     )
 
 
-@api.post("/api/register-push-subscription")
+@api.post("/api/register-push-subscription", response_model=WebPushSubscription | None)
 async def register_web_push_subscription(
-    db: database.depends,
     user: security.authenticated,
     subscription: Annotated[Any, Body()],
 ):
-    return (
-        WebPushSubscriptionStore(connection=db)
-        .insert()
-        .values(user_id=user.id, subscription=subscription)
-        .execute()
-        .one()
-    )
+    return WebPushSubscription.subscribe_user(user.id, subscription)
+
+
+if config.enabled:
+    config.vapid_private_key_file.parent.mkdir(parents=True, exist_ok=True)
+    vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
+    submissions.ContactFormSubmission.subscribe(notify_submission)
