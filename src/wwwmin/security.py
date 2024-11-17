@@ -111,6 +111,7 @@ class User:
             database.connection.table(cls)
             .insert()
             .values(username=username, password_hash=_hash_password(password))
+            .returning("*")
             .execute()
             .one()
         )
