@@ -50,9 +50,9 @@ async def cleanup():
 
 def upgrade():
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", config.vcs_package_url],
+        [sys.executable, "-m", "pip", "install", "--upgrade", config().vcs_package_url],
         check=True,
-        cwd=config.vcs_wd,
+        cwd=config().vcs_wd,
     )
 
 
@@ -106,10 +106,10 @@ async def receive_webhook(
         case _:
             return
     body = await request.body()
-    if config.check:
-        if not check_branch(body, config.branch):
+    if config().check:
+        if not check_branch(body, config().branch):
             return
-        verify_signature(body, x_hub_signature_256, config.secret)
+        verify_signature(body, x_hub_signature_256, config().secret)
     tasks.add_task(do_upgrade_cycle)
 
 

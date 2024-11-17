@@ -3,6 +3,8 @@ from typing import Literal, cast
 import cyclopts
 from rich.console import Console
 
+import appbase
+
 console = Console()
 main = cli = cyclopts.App(name="wwwmin-serve")
 config_cli = cyclopts.App(name="config")
@@ -13,7 +15,12 @@ cli.command(config_cli)
 
 @cli.default()
 @cli.command()
-def serve():
+def serve(config: str | None = None):
+    import wwwmin.config
+
+    if config:
+        wwwmin.config.configconfig.reload(text=config)
+
     import wwwmin.server
 
     wwwmin.server.serve()
@@ -31,6 +38,8 @@ def show(format: Literal["json", "toml", "yaml"] = "toml"):
 def init(path: Path | None = None):
     import wwwmin.server
     import wwwmin.config
+
+    wwwmin.config.configconfig.dump(appbase.config.PathSource(path) if path else None)
 
     path = path or wwwmin.config.configconfig.source.configdir / "config.toml"
     format = path.suffix.lstrip(".").lower()

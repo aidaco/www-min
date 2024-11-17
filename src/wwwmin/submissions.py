@@ -19,7 +19,7 @@ class ContactFormSubmission:
     received_at: datetime
     archived_at: datetime | None
 
-    subscribers: ClassVar[set[Callable[[Self], Awaitable[None]]]]
+    subscribers: ClassVar[set[Callable[[Self], Awaitable[None]]]] = set()
 
     @classmethod
     def subscribe(
@@ -186,3 +186,6 @@ async def post_unarchive_submission_form(
     if not submission:
         raise HTTPException(404, "Not Found.")
     return RedirectResponse("/admin.html", status_code=302)
+
+
+database.connection.table(ContactFormSubmission).create().if_not_exists().execute()

@@ -32,7 +32,7 @@ class config:
 def iter_daily_parts() -> Iterator[tuple[str, str]]:
     for day in range(7):
         day_name = calendar.day_name[day]
-        match config.schedule.get(day_name):
+        match config().schedule.get(day_name):
             case [open, close]:
                 o = f"{open:%l:%M%p}".strip()
                 c = f"{close:%l:%M%p}".strip()
@@ -44,7 +44,7 @@ def iter_daily_parts() -> Iterator[tuple[str, str]]:
 def iter_daily_as_str() -> Iterator[str]:
     for day in range(7):
         day_name = calendar.day_name[day]
-        match config.schedule.get(day_name):
+        match config().schedule.get(day_name):
             case [open, close]:
                 o = f"{open:%l:%M%p}".strip()
                 c = f"{close:%l:%M%p}".strip()
@@ -58,11 +58,11 @@ def to_simple_str() -> str:
 
 
 def open_now() -> bool:
-    if not config.enabled:
+    if not config().enabled:
         return True
-    now = datetime.now(zoneinfo.ZoneInfo(config.tz_name))
+    now = datetime.now(zoneinfo.ZoneInfo(config().tz_name))
     current_weekday = calendar.day_name[now.weekday()]
-    match config.schedule[current_weekday]:
+    match config().schedule[current_weekday]:
         case None:
             return False
         case (open_at, close_at):

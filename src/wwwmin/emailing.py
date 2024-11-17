@@ -21,8 +21,8 @@ class config:
 
 async def notify_submission(submission: submissions.ContactFormSubmission) -> None:
     msg = email.message.EmailMessage()
-    msg["From"] = config.username
-    msg["To"] = config.to
+    msg["From"] = config().username
+    msg["To"] = config().to
     msg["Subject"] = (
         f'Contact Submission [{submission.id}] from [{submission.email or ""}|{submission.phone or ""}] at [{submission.received_at}]'
     )
@@ -32,19 +32,19 @@ async def notify_submission(submission: submissions.ContactFormSubmission) -> No
 
 async def notify_exception(host, port, method, url, exc_type, exc_value, exc_tb):
     msg = email.message.EmailMessage()
-    msg["From"] = config.username
-    msg["To"] = config.to
+    msg["From"] = config().username
+    msg["To"] = config().to
     msg["Subject"] = f'{host}:{port} - "{method} {url}" <{exc_type}: {exc_value}>'
     msg.set_content(f"{exc_tb}")
     await notify(msg)
 
 
 async def notify(msg: email.message.EmailMessage):
-    if not config.enabled:
+    if not config().enabled:
         return
-    with smtplib.SMTP(config.host, config.port) as smtp:
+    with smtplib.SMTP(config().host, config().port) as smtp:
         smtp.starttls()
-        smtp.login(config.username, config.password)
+        smtp.login(config().username, config().password)
         smtp.send_message(msg)
 
 
@@ -79,5 +79,5 @@ def install_exception_handler(app: FastAPI):
     app.exception_handler(Exception)(notify_unhandled_exceptions_handler)
 
 
-if config.enabled:
+if config().enabled:
     submissions.ContactFormSubmission.subscribe(notify_submission)

@@ -12,7 +12,7 @@ import appbase
 
 from . import security, database
 from .submissions import ContactFormSubmission
-from .config import configconfig
+from .config import configconfig, config as main_config
 from .util import utcnow
 from wwwmin import submissions
 
@@ -20,7 +20,7 @@ from wwwmin import submissions
 @configconfig.section("webpush")
 class config:
     enabled: bool = False
-    vapid_private_key_file: Path = configconfig.source.datadir / "vapid-private-key.pem"
+    vapid_private_key_file: Path = main_config().datadir / "vapid-private-key.pem"
 
 
 @dataclass
@@ -76,7 +76,7 @@ async def notify_submission(submission: ContactFormSubmission) -> None:
 
 async def notify_all(data: dict) -> None:
     payload = json.dumps(data)
-    vapid_pk = str(config.vapid_private_key_file.resolve())
+    vapid_pk = str(config().vapid_private_key_file.resolve())
     for subscription in WebPushSubscription.iterall():
         try:
             webpush(
@@ -115,7 +115,8 @@ async def register_web_push_subscription(
     return WebPushSubscription.subscribe_user(user.id, subscription)
 
 
-if config.enabled:
-    config.vapid_private_key_file.parent.mkdir(parents=True, exist_ok=True)
-    vapid = py_vapid.Vapid.from_file(config.vapid_private_key_file)
+if config().enabled:
+    database.connection.table(WebPushSubscription).create().if_not_exists().execute()
+    config().vapid_private_key_file.parent.mkdir(parents=True, exist_ok=True)
+    vapid = py_vapid.Vapid.from_file(config().vapid_private_key_file)
     submissions.ContactFormSubmission.subscribe(notify_submission)

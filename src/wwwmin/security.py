@@ -53,16 +53,16 @@ def _encode_token(user_id: int, scopes: set[str] | None = None) -> str:
         {
             "user": user_id,
             "scopes": ";".join(scopes) if scopes else "",
-            "exp": utcnow() + config.jwt_ttl,
+            "exp": utcnow() + config().jwt_ttl,
         },
-        key=config.jwt_secret,
+        key=config().jwt_secret,
         algorithm="HS256",
     )
 
 
 def _decode_token(token: str) -> tuple[int, set[str] | None]:
     try:
-        data = jwt.decode(token, key=config.jwt_secret, algorithms=["HS256"])["user"]
+        data = jwt.decode(token, key=config().jwt_secret, algorithms=["HS256"])["user"]
         user_id = int(data["user"])
         scopes = data["scopes"]
         scopes = set(scopes.split(";")) if scopes != "" else None
@@ -185,7 +185,7 @@ async def submit_login_form(
         secure=True,
         httponly=True,
         samesite="strict",
-        max_age=round(config.jwt_ttl.total_seconds()),
+        max_age=round(config().jwt_ttl.total_seconds()),
     )
     return response
 
@@ -199,3 +199,6 @@ def handle_login_required(request: Request, _: LoginRequired):
 
 def install_exception_handler(app: FastAPI):
     app.exception_handler(LoginRequired)(handle_login_required)
+
+
+database.connection.table(User).create().if_not_exists().execute()

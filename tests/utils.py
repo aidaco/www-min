@@ -49,9 +49,8 @@ def run_server(
 ):
     def _run_target(config, frozendt):
         import wwwmin.config
-        import appbase.config
 
-        wwwmin.config.configconfig = appbase.config.load_from(mapping=config)
+        wwwmin.config.configconfig.reload(mapping=config)
         import wwwmin.operating_hours
 
         with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:

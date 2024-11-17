@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Any, Iterator, Protocol, Self
 import itertools
 import pydantic
@@ -10,10 +10,7 @@ import appbase
 
 from . import security, database
 from .config import configconfig
-
-
-def utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
+from .util import utcnow
 
 
 class CategoryType(Protocol):
@@ -149,7 +146,7 @@ def get_contact_links() -> dict[Category, list[Link]]:
         result[Category(name=category.name)] = [
             Link(category.name, link.name, link.href) for link in links
         ]
-    for link in config.links:
+    for link in config().links:
         result.setdefault(Category(name=link.category), []).append(link)
     return result
 
@@ -233,3 +230,7 @@ async def post_link_update_form(
         name=name, href=href, category_id=category_id
     ).where(id=id).execute()
     return RedirectResponse("/admin.html", status_code=302)
+
+
+database.connection.table(LinkCategory).create().if_not_exists().execute()
+database.connection.table(ContactLink).create().if_not_exists().execute()
