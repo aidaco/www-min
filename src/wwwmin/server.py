@@ -53,7 +53,7 @@ async def health_check(templates: assets.depends, _: operating_hours.depends):
             .execute("select count(*) from user;")
             .fetchone()
         )
-        _ = templates.get_template("index.html")
+        __ = templates.get_template("index.html")
     except Exception as e:
         raise HTTPException(status_code=503, detail="Database error: " + str(e))
 

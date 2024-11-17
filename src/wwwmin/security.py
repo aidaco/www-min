@@ -62,7 +62,7 @@ def _encode_token(user_id: int, scopes: set[str] | None = None) -> str:
 
 def _decode_token(token: str) -> tuple[int, set[str] | None]:
     try:
-        data = jwt.decode(token, key=config().jwt_secret, algorithms=["HS256"])["user"]
+        data = jwt.decode(token, key=config().jwt_secret, algorithms=["HS256"])
         user_id = int(data["user"])
         scopes = data["scopes"]
         scopes = set(scopes.split(";")) if scopes != "" else None

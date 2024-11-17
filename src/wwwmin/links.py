@@ -70,6 +70,7 @@ class LinkCategory:
             database.connection.table(cls)
             .insert()
             .values(LinkCategoryData(**kwargs))
+            .returning("*")
             .execute()
             .one()
         )
@@ -107,6 +108,29 @@ class ContactLink:
             database.connection.table(cls)
             .insert()
             .values(ContactLinkData(**kwargs))
+            .returning("*")
+            .execute()
+            .one()
+        )
+
+    def update(
+        self,
+        name: str | None = None,
+        href: str | None = None,
+        category_id: str | None = None,
+    ) -> Self | None:
+        data = {}
+        if name:
+            data["name"] = name
+        if href:
+            data["href"] = href
+        if category_id:
+            data["category_id"] = category_id
+        return (
+            database.connection.table(type(self))
+            .update()
+            .set(data)
+            .where(id=id)
             .execute()
             .one()
         )
@@ -159,8 +183,7 @@ async def post_category(
     _: security.authenticated,
     name: Annotated[str, Form()],
 ):
-    category = LinkCategory.create(name=name)
-    return category
+    return LinkCategory.create(name=name)
 
 
 @api.post("/form/links/categories")
@@ -189,9 +212,7 @@ async def post_link_create_form(
     href: Annotated[str, Form()],
     category_id: Annotated[int, Form()],
 ):
-    database.connection.table(ContactLink).insert().values(
-        name=name, href=href, category_id=category_id
-    ).execute()
+    ContactLink.create(name=name, href=href, category_id=category_id)
     return RedirectResponse("/admin.html", status_code=302)
 
 

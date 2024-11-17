@@ -25,14 +25,14 @@ class ContactFormSubmission:
     def subscribe(
         cls, corofn: Callable[[Self], Awaitable[None]]
     ) -> Callable[[Self], Awaitable[None]]:
-        cls.subscribers.add(corofn)
+        cls.subscribers.add(corofn)  # type: ignore
         return corofn
 
     @classmethod
     def unsubscribe(cls, corofn: Callable[[Self], Awaitable[None]]) -> None:
-        cls.subscribers.discard(corofn)
+        cls.subscribers.discard(corofn)  # type: ignore
 
-    def notify_in_backgroundtasks(self, tasks: BackgroundTasks) -> None:
+    def notify_in_backgroundtasks(self: Self, tasks: BackgroundTasks) -> None:
         for corofn in self.subscribers:
             tasks.add_task(corofn, self)
 

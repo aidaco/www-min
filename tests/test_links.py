@@ -31,12 +31,12 @@ def test_api():
         headers = {"Authorization": f"Bearer {token}"}
         cat = requests.post(
             "http://localhost:8000/api/links/categories",
-            {"name": "personal"},
+            data={"name": "personal"},
             headers=headers,
         ).json()
         requests.post(
             "http://localhost:8000/api/links",
-            {
+            data={
                 "name": "contact",
                 "href": test_value,
                 "category_id": cat["id"],
