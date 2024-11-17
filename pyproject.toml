@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wwwmin"
-version = "0.0.1-beta2"
+version = "0.0.1"
 description = "Frontend & backend for https://aidan.software"
 readme = "README.md"
 requires-python = ">=3.12"
