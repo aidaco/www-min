@@ -12,14 +12,14 @@ from typing import Annotated
 import psutil
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 
-from .config import config as main_config
+from .config import configconfig
 from wwwmin.security import authenticated
 
 
 api = APIRouter()
 
 
-@main_config.section("cd")
+@configconfig.section("cd")
 class config:
     enabled: bool = True
     vcs_package_url: str = "git+https://github.com/aidaco/www-min"
@@ -50,9 +50,9 @@ async def cleanup():
 
 def upgrade():
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", config.vcs_package_url],
+        [sys.executable, "-m", "pip", "install", "--upgrade", config().vcs_package_url],
         check=True,
-        cwd=config.vcs_wd,
+        cwd=config().vcs_wd,
     )
 
 
@@ -106,10 +106,10 @@ async def receive_webhook(
         case _:
             return
     body = await request.body()
-    if config.check:
-        if not check_branch(body, config.branch):
+    if config().check:
+        if not check_branch(body, config().branch):
             return
-        verify_signature(body, x_hub_signature_256, config.secret)
+        verify_signature(body, x_hub_signature_256, config().secret)
     tasks.add_task(do_upgrade_cycle)
 
 

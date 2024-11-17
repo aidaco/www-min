@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from . import security, static, templates, database, operating_hours, links
+from . import security, static, templates, database, operating_hours, links, submissions
 
 
 @asynccontextmanager
@@ -37,27 +37,23 @@ api = APIRouter(lifespan=lifespan)
 
 @api.get("/", response_class=HTMLResponse)
 async def get_bare_index(
-    db: database.depends,
     templates: depends,
     request: Request,
     operating: operating_hours.depends,
 ):
-    return await get_index(db, templates, request, operating)
+    return await get_index(templates, request, operating)
 
 
 @api.get("/index.html", response_class=HTMLResponse)
 async def get_index(
-    db: database.depends,
     templates: depends,
     request: Request,
     _: operating_hours.depends,
 ):
-    if not operating_hours.open_now():
-        return operating_hours.closed_index(templates, request)
     return templates.TemplateResponse(
         request,
         "index.html",
-        context={"links_by_category": links.get_contact_links(db)},
+        context={"links_by_category": links.get_contact_links()},
     )
 
 
@@ -72,7 +68,6 @@ async def get_login(
 
 @api.get("/admin.html", response_class=HTMLResponse)
 async def get_admin(
-    db: database.depends,
     templates: depends,
     request: Request,
     _: security.authenticated,
@@ -81,9 +76,12 @@ async def get_admin(
         request,
         "admin.html",
         context={
-            "links_by_category": db.contact_links.group_by_category(),
-            "categories": db.link_categories.iter(),
-            "active_submissions": db.contact_form_submissions.active(),
-            "archived_submissions": db.contact_form_submissions.archived(),
+            "links_by_category": links.ContactLink.group_by_category(),
+            "categories": database.connection.table(links.LinkCategory)
+            .select()
+            .execute()
+            .all(),
+            "active_submissions": submissions.ContactFormSubmission.active(),
+            "archived_submissions": submissions.ContactFormSubmission.archived(),
         },
     )

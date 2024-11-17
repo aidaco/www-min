@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Any, Iterator, Self
 from urllib.parse import quote
 
 import jwt
@@ -15,13 +16,14 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+import appbase
 
 from .util import utcnow
 from . import database
-from .config import config as main_config
+from .config import configconfig
 
 
-@main_config.section("security")
+@configconfig.section("security")
 class config:
     jwt_secret: str = "correct horse battery staple"
     jwt_ttl: timedelta = timedelta(days=30)
@@ -35,44 +37,105 @@ class AuthenticationError(Exception):
     pass
 
 
-def hash_password(password: str) -> str:
+def _hash_password(password: str) -> str:
     return hasher.hash(password)
 
 
-def verify_password(hash: str, password: str) -> bool:
+def _verify_password(hash: str, password: str) -> bool:
     try:
         return hasher.verify(hash, password)
     except argon2.exceptions.VerificationError:
         raise AuthenticationError("Password mismatch.")
 
 
-def encode_token(user_id: int) -> str:
+def _encode_token(user_id: int, scopes: set[str] | None = None) -> str:
     return jwt.encode(
-        {"user": user_id, "exp": utcnow() + config.jwt_ttl},
-        key=config.jwt_secret,
+        {
+            "user": user_id,
+            "scopes": ";".join(scopes) if scopes else "",
+            "exp": utcnow() + config().jwt_ttl,
+        },
+        key=config().jwt_secret,
         algorithm="HS256",
     )
 
 
-def decode_token(token: str) -> dict:
+def _decode_token(token: str) -> tuple[int, set[str] | None]:
     try:
-        return jwt.decode(token, key=config.jwt_secret, algorithms=["HS256"])["user"]
-    except jwt.DecodeError:
+        data = jwt.decode(token, key=config().jwt_secret, algorithms=["HS256"])
+        user_id = int(data["user"])
+        scopes = data["scopes"]
+        scopes = set(scopes.split(";")) if scopes != "" else None
+        return user_id, scopes
+    except (jwt.DecodeError, AttributeError):
         raise AuthenticationError("Invalid token.")
 
 
-def create_user(username: str, password: str) -> database.User:
-    password_hash = hash_password(password)
-    return database.database.users.insert(username, password_hash)
+@dataclass
+class UserData:
+    username: str
+    password: str
+
+    @property
+    def password_hash(self) -> str:
+        return _hash_password(self.password)
 
 
-def login_user(username: str, password: str) -> tuple[database.User, str]:
-    user = database.database.users.by_name(username)
-    if not user:
-        raise AuthenticationError("User not found.")
-    verify_password(user.password_hash, password)
-    token = encode_token(user_id=user.id)
-    return user, token
+@dataclass
+class User:
+    id: appbase.database.INTPK
+    username: Annotated[str, "UNIQUE"]
+    password_hash: str
+
+    @classmethod
+    def iterall(cls) -> Iterator[Self]:
+        yield from database.connection.table(cls).select().execute().iter()
+
+    @classmethod
+    def get_by_id(cls, id: int) -> Self | None:
+        return database.connection.table(cls).select().where(id=id).execute().one()
+
+    @classmethod
+    def get_by_name(cls, username: str) -> Self | None:
+        return (
+            database.connection.table(cls)
+            .select()
+            .where(username=username)
+            .execute()
+            .one()
+        )
+
+    @classmethod
+    def create(cls, username: str, password: str) -> Self | None:
+        return (
+            database.connection.table(cls)
+            .insert()
+            .values(username=username, password_hash=_hash_password(password))
+            .returning("*")
+            .execute()
+            .one()
+        )
+
+    @classmethod
+    def authenticate_password(cls, username: str, password: str) -> Self:
+        user = cls.get_by_name(username)
+        if not user:
+            raise AuthenticationError("User not found.")
+        _verify_password(user.password_hash, password)
+        return user
+
+    @classmethod
+    def authenticate_token(cls, token: Any) -> Self:
+        if not isinstance(token, str):
+            raise AuthenticationError("No authentication found.")
+        user_id, scopes = _decode_token(token)
+        user = cls.get_by_id(user_id)
+        if not user:
+            raise AuthenticationError("User not found.")
+        return user
+
+    def encode_token(self, scopes: set[str] | None = None) -> str:
+        return _encode_token(self.id, scopes)
 
 
 class LoginRequired(Exception):
@@ -83,21 +146,16 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token", auto_error=False)
 
 
 async def authenticate(
-    db: database.depends,
     cookie: Annotated[str | None, Cookie(alias="Authorization")] = None,
     header: Annotated[str | None, Depends(oauth2_scheme)] = None,
-) -> database.User | None:
-    token = cookie or header
-    if token is None:
-        raise LoginRequired("No authorization found.")
+) -> User | None:
     try:
-        user_id = decode_token(token)
-        return db.users.get(user_id)
+        return User.authenticate_token(cookie or header)
     except AuthenticationError:
         raise LoginRequired("Invalid authentication found.")
 
 
-authenticated = Annotated[database.User, Depends(authenticate)]
+authenticated = Annotated[User, Depends(authenticate)]
 
 
 @api.post("/api/token")
@@ -105,10 +163,10 @@ async def submit_login(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
     username = form.username
     password = form.password
     try:
-        _, token = login_user(username, password)
+        user = User.authenticate_password(username, password)
     except AuthenticationError:
         raise HTTPException(status_code=400, detail="Authentication failed.")
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": user.encode_token(), "token_type": "bearer"}
 
 
 @api.post("/form/login")
@@ -118,17 +176,17 @@ async def submit_login_form(
     next: Annotated[str, Form()] = "/admin.html",
 ):
     try:
-        _, token = login_user(username, password)
+        user = User.authenticate_password(username, password)
     except AuthenticationError:
         return RedirectResponse(f"/login.html?next={next!r}", status_code=302)
     response = RedirectResponse("/admin.html", status_code=302)
     response.set_cookie(
         key="Authorization",
-        value=token,
+        value=user.encode_token(),
         secure=True,
         httponly=True,
         samesite="strict",
-        max_age=round(config.jwt_ttl.total_seconds()),
+        max_age=round(config().jwt_ttl.total_seconds()),
     )
     return response
 
@@ -142,3 +200,6 @@ def handle_login_required(request: Request, _: LoginRequired):
 
 def install_exception_handler(app: FastAPI):
     app.exception_handler(LoginRequired)(handle_login_required)
+
+
+database.connection.table(User).create().if_not_exists().execute()

@@ -1,6 +1,6 @@
 html {
   --text-light: #FEFEFE;
-  --text-dark: #5E5E5E;
+  --text-dark: #bfbfbf;
   --primary: purple;
   --accent-black: black;
   --accent-dark: #291032;
@@ -46,10 +46,35 @@ body {
     overflow: auto;
     margin: 0;
     padding: 0;
-    max-height: fit-content;
+    height: fit-content;
 
     .title {
       margin: 1rem;
+    }
+
+    &.nameplate {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      height: 100px;
+
+      h1 {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        margin: 0;
+        padding: 0;
+        text-align: left;
+      }
+
+      h2 {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        margin: 0;
+        padding: 0;
+        text-align: right;
+      }
     }
   }
 }
@@ -98,9 +123,9 @@ ul {
 .shadow {
   color: var(--text-light);
   background: var(--primary);
-  border-top: 7px solid var(--secondary);
-  border-left: 5px solid var(--secondary);
-  box-shadow: 10px 10px black;
+  border-top: 5px solid var(--secondary);
+  border-left: 3px solid var(--secondary);
+  box-shadow: 5px 5px black;
 }
 
 form {
@@ -130,19 +155,22 @@ label {
 
 input,
 textarea {
+  font-family: monospace;
+  font-size: inherit;
   color: inherit;
   background: var(--primary);
-  font: 1.25rem monospace;
-  font-weight: bold;
   border: none;
   padding: 0.5rem;
   margin: 0;
   min-width: 0;
 }
 
-::placeholder {
-  font: italic 1rem monospace;
+input::placeholder,textarea::placeholder {
+  font-style: italic;
   color: var(--text-dark);
+}
+input:focus::placeholder,textarea:focus::placeholder {
+  color: transparent;
 }
 
 textarea:hover,
@@ -189,30 +217,6 @@ h2 {
   }
 }
 
-.nameplate {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  height: 100px;
-
-  h1 {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    margin: 0;
-    padding: 0;
-    text-align: left;
-  }
-
-  h2 {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    margin: 0;
-    padding: 0;
-    text-align: right;
-  }
-}
 
 .accordion {
   >.toggle {
@@ -295,7 +299,7 @@ h2 {
 
 @media screen and (max-width: 600px) {
   body {
-    grid-template-columns: [left] [left-main] 100dvw [right-main] [right];
+    grid-template-columns: [left] 5dvw [left-main] 90dvw [right-main] 5dvw [right];
   }
 
   form {

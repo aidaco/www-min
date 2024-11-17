@@ -15,10 +15,10 @@ from . import (
     operating_hours,
     emailing,
 )
-from .config import config as main_config
+from .config import configconfig
 
 
-@main_config.section("server")
+@configconfig.section("server")
 class config:
     host: str = "0.0.0.0"
     port: int = 8000
@@ -36,22 +36,24 @@ api.include_router(security.api)
 api.include_router(submissions.api)
 security.install_exception_handler(api)
 api.include_router(webpush.api)
-if github_webhook.config.enabled:
+if github_webhook.config().enabled:
     api.include_router(github_webhook.api)
 api.include_router(assets.api)
-if emailing.config.enabled:
+if emailing.config().enabled:
     emailing.install_exception_handler(api)
-if operating_hours.config.enabled:
+if operating_hours.config().enabled:
     operating_hours.install_exception_handler(api)
 
 
 @api.get("/api/health")
-async def health_check(
-    db: database.depends, templates: assets.depends, _: operating_hours.depends
-):
+async def health_check(templates: assets.depends, _: operating_hours.depends):
     try:
-        _ = db.query("SELECT 1").fetchone()  # Simple query to test connection
-        _ = templates.get_template("index.html")
+        _ = (
+            database.connection.cursor()
+            .execute("select count(*) from user;")
+            .fetchone()
+        )
+        __ = templates.get_template("index.html")
     except Exception as e:
         raise HTTPException(status_code=503, detail="Database error: " + str(e))
 
@@ -60,6 +62,6 @@ async def health_check(
 
 def serve():
     try:
-        uvicorn.run(api, host=config.host, port=config.port)
+        uvicorn.run(api, host=config().host, port=config().port)
     except KeyboardInterrupt:
         print("[red]Stopped.[/]")

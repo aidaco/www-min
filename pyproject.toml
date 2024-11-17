@@ -25,14 +25,13 @@ dependencies = [
   "py_vapid",
   "requests",
   "toml",
-  "appdirs",
+  "platformdirs",
   "psutil",
   "cyclopts"
 ]
 
 [project.optional-dependencies]
-pysqlite3 = ["pysqlite3-binary"]
-dev = ["pre-commit", "pyright", "ruff", "mypy", "types-requests", "types-toml"]
+dev = ["wwwmin[test]", "pre-commit", "pyright", "ruff", "mypy", "types-requests", "types-toml"]
 test = ["pytest", "coverage"]
 
 [project.urls]
