@@ -7,7 +7,7 @@ name = "wwwmin"
 version = "0.0.1"
 description = "Frontend & backend for https://aidan.software"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 license = {file = "LICENSE.txt"}
 keywords = ["portfolio", "professional", "website"]
 authors = [
