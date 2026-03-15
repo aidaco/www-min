@@ -7,7 +7,7 @@ name = "wwwmin"
 version = "0.0.1"
 description = "Frontend & backend for https://aidan.software"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 license = {file = "LICENSE.txt"}
 keywords = ["portfolio", "professional", "website"]
 authors = [
@@ -27,7 +27,8 @@ dependencies = [
   "toml",
   "platformdirs",
   "psutil",
-  "cyclopts"
+  "cyclopts",
+  "appbase @ git+https://github.com/aidaco/misc.git@main#subdirectory=appbase"
 ]
 
 [project.optional-dependencies]
