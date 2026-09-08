@@ -1,0 +1,12 @@
+# Disposable CI/local containers only. Never use these credentials in production.
+[security]
+jwt_secret = "disposable-container-test-secret-not-for-production"
+[cd]
+enabled = false
+[operating_hours]
+enabled = true
+[emailing]
+enabled = false
+[server]
+host = "0.0.0.0"
+port = 8000

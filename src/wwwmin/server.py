@@ -46,7 +46,7 @@ if operating_hours.config().enabled:
 
 
 @api.get("/api/health")
-async def health_check(templates: assets.depends, _: operating_hours.depends):
+async def health_check(templates: assets.depends):
     try:
         _ = (
             database.connection.cursor()
@@ -54,10 +54,14 @@ async def health_check(templates: assets.depends, _: operating_hours.depends):
             .fetchone()
         )
         __ = templates.get_template("index.html")
-    except Exception as e:
-        raise HTTPException(status_code=503, detail="Database error: " + str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=503, detail="Application is not ready"
+        ) from None
 
-    return JSONResponse(content={"status": "ok"})
+    return JSONResponse(
+        content={"status": "ok", "site_open": operating_hours.open_now()}
+    )
 
 
 def serve():

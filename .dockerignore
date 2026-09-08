@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!README.md
+!MANIFEST.in
+!src/
+!src/**
+!docker/
+!docker/entrypoint.py
+**/*.pem
+**/*.sqlite3*
+**/.env*
+**/__pycache__

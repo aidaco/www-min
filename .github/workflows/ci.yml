@@ -1,0 +1,133 @@
+name: CI and deployment
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: read
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build the production image
+        run: >-
+          docker build --pull --tag wwwmin:ci
+          --label org.opencontainers.image.source=https://github.com/aidaco/www-min
+          --label org.opencontainers.image.revision="$GITHUB_SHA" .
+      - name: Application tests with locked dependencies on Python 3.14
+        run: |
+          docker build --target build --tag wwwmin:build .
+          docker run --rm --entrypoint /bin/sh \
+            --mount type=bind,src="$PWD/tests",dst=/app/tests,readonly \
+            wwwmin:build -c 'uv sync --locked --extra test && .venv/bin/python -m pytest -q'
+      - name: Start the disposable production container
+        run: |
+          docker run -d --name wwwmin-test --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --memory 512m --pids-limit 128 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --tmpfs /data/wwwmin:rw,noexec,nosuid,uid=10001,gid=10001,size=64m \
+            --mount type=bind,src="$PWD/docker/test-config.toml",dst=/config/wwwmin/config.toml,readonly \
+            -p 127.0.0.1:18000:8000 wwwmin:ci
+          for attempt in $(seq 1 45); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' wwwmin-test)" = healthy ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs wwwmin-test
+          exit 1
+      - name: Smoke tests against the disposable image
+        run: python3 scripts/smoke.py http://127.0.0.1:18000
+      - name: Require a merged pull request for releases
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/aidaco/www-min/commits/$GITHUB_SHA/pulls" > /tmp/release-prs.json
+          python3 - <<'PYCODE'
+          import json, os
+          prs = json.load(open('/tmp/release-prs.json'))
+          assert any(p['merged_at'] and p['base']['ref'] == 'main' and p['merge_commit_sha'] == os.environ['GITHUB_SHA'] for p in prs), 'Release must come from a merged pull request'
+          PYCODE
+      - name: Publish the tested image privately
+        id: publish
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag wwwmin:ci "ghcr.io/aidaco/www-min:$GITHUB_SHA"
+          docker push "ghcr.io/aidaco/www-min:$GITHUB_SHA"
+          image=$(docker inspect --format '{{index .RepoDigests 0}}' "ghcr.io/aidaco/www-min:$GITHUB_SHA")
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          docker logout ghcr.io
+      - name: Collect failure details
+        if: failure()
+        run: docker logs wwwmin-test || true
+      - name: Remove the disposable container
+        if: always()
+        run: docker rm -f wwwmin-test || true
+
+  deploy:
+    name: Deploy production
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: wwwmin-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    env:
+      WWWMIN_IMAGE: ${{ needs.verify.outputs.image }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set temporary SSH paths
+        run: |
+          echo "WWWMIN_SSH_KEY_FILE=$RUNNER_TEMP/wwwmin-deploy-key" >> "$GITHUB_ENV"
+          echo "WWWMIN_KNOWN_HOSTS_FILE=$RUNNER_TEMP/wwwmin-known-hosts" >> "$GITHUB_ENV"
+      - name: Skip a stale workflow if main has advanced
+        id: current
+        run: |
+          if [ "$(gh api repos/aidaco/www-min/commits/main --jq .sha)" = "$GITHUB_SHA" ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare smoke tests and restricted SSH credentials
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          DEPLOY_KEY: ${{ secrets.WWWMIN_DEPLOY_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$WWWMIN_SSH_KEY_FILE"
+          printf '%s\n' '77.93.154.112 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINqEEsyKAOi/1Ha0ZiuGcIVQe/QxoecsgBnuZ79lMct2' > "$WWWMIN_KNOWN_HOSTS_FILE"
+      - name: Deploy the immutable image
+        id: release
+        if: steps.current.outputs.deploy == 'true'
+        run: python3 scripts/deploy.py deploy
+      - name: Public smoke tests (read-only)
+        id: smoke
+        if: steps.release.outcome == 'success'
+        run: python3 scripts/smoke.py https://aidan.software
+      - name: Roll back code if public smoke tests fail
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: python3 scripts/deploy.py rollback
+      - name: Remove SSH credentials
+        if: always()
+        run: rm -f "$WWWMIN_SSH_KEY_FILE" "$WWWMIN_KNOWN_HOSTS_FILE"
