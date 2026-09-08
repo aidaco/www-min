@@ -25,7 +25,7 @@ capabilities, bounded resources and logs, and writable SQLite state only at
 Feature branches go through pull requests. `Verify` builds the locked production
 image, runs the application suite on Python 3.14, and smoke-tests a disposable
 container with email disabled. Main releases require an associated merged PR.
-The tested image is published to private `ghcr.io/aidaco/www-min` and deployed by
+The tested image is published to `ghcr.io/aidaco/www-min` and deployed by
 exact digest, never by a mutable `latest` tag.
 
 CD connects to Gooch as `wwwmin-deploy`, whose SSH key can only invoke the
@@ -71,3 +71,21 @@ changes use Piac's `playbooks/wwwmin.yml`; its handler reapplies the CD-selected
 
 See [Piac's website runbook](../../../piac/docs/hosts/gooch-wwwmin.md) for
 migration, backup, and rollback procedures (sibling checkouts assumed).
+
+## Verified rollout — September 8, 2026
+
+[PR #1](https://github.com/aidaco/www-min/pull/1) merged as `6fb6d5b`.
+[The first automatic release](https://github.com/aidaco/www-min/actions/runs/34186191511)
+passed all ten application tests, container smoke checks, deployment, and public
+read-only smoke checks. Main now requires PRs and `Verify`, including for admins;
+force pushes and branch deletion are disabled.
+
+Gooch's encrypted website backup to `gooch-backup` was verified by restoring the
+SQLite database and push key into separate temporary storage (about 1.1 MiB),
+comparing both files, and running SQLite's full integrity check. Piac's runbook
+records the snapshot and recovery procedure.
+
+A separate GitHub-hosted registry audit reported the package as **public** and
+confirmed anonymous manifest access. Its access policy has not been changed;
+private visibility remains a separate follow-up decision. Runtime credentials,
+contact submissions, database files, and push keys are excluded from the image.
