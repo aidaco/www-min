@@ -2,11 +2,9 @@
 
 `www-min` is the current application for https://aidan.software; the older
 `aidaco/www` repository is retired. Piac previously ran commit `07aa614` as
-`wwwmin.service` on Jumper. The container migration to Gooch is complete. Changes are committed locally on
-`deploy/gooch-container`; publication to the existing public repository and
-enrollment of its Actions deployment key await explicit approval. Production
-currently uses a tested image transferred through the existing trusted host SSH
-connection. See Piac's runbook for the bootstrap image and retained data copies.
+`wwwmin.service` on Jumper. The website now runs in Docker on Gooch, with
+Piac managing infrastructure and this repository managing automated releases.
+See Piac's runbook for the migration record, backups, and retained recovery copies.
 
 ## Ownership and traffic
 
@@ -34,7 +32,7 @@ CD connects to Gooch as `wwwmin-deploy`, whose SSH key can only invoke the
 root-owned `/usr/local/sbin/wwwmin-deploy` helper. It cannot open a shell, forward
 ports, use general sudo, or deploy Arcade images. The private key is stored in
 Piac's encrypted vault and the repository's `WWWMIN_DEPLOY_SSH_KEY` Actions
-secret once enrolled. The host key is pinned in the workflow. A temporary
+secret. The host key is pinned in the workflow. A temporary
 `GITHUB_TOKEN` travels over SSH stdin and is removed from the host after pulling;
 there is no permanent registry token on Gooch.
 
