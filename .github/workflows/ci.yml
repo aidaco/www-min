@@ -63,7 +63,7 @@ jobs:
           prs = json.load(open('/tmp/release-prs.json'))
           assert any(p['merged_at'] and p['base']['ref'] == 'main' and p['merge_commit_sha'] == os.environ['GITHUB_SHA'] for p in prs), 'Release must come from a merged pull request'
           PYCODE
-      - name: Publish the tested image privately
+      - name: Publish the tested image
         id: publish
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
