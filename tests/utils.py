@@ -39,6 +39,26 @@ BASE_CONFIG = {
 }
 
 
+def _run_target(config, frozendt, user_credentials, close_database):
+    import wwwmin.config
+
+    wwwmin.config.configconfig.reload(mapping=config)
+    import wwwmin.operating_hours
+
+    with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:
+        mockdt.now.return_value = frozendt
+        import wwwmin.server
+        import wwwmin.security
+
+        for username, password in user_credentials:
+            wwwmin.security.User.create(username, password)
+
+        if close_database:
+            wwwmin.server.database.connection.close()
+
+        wwwmin.server.serve()
+
+
 @contextlib.contextmanager
 def run_server(
     config: dict = BASE_CONFIG,
@@ -46,24 +66,11 @@ def run_server(
         tz=zoneinfo.ZoneInfo("America/New_York")
     ),
     user_credentials: list[tuple[str, str]] = [("admin", "password")],
+    close_database: bool = False,
 ):
-    def _run_target(config, frozendt):
-        import wwwmin.config
-
-        wwwmin.config.configconfig.reload(mapping=config)
-        import wwwmin.operating_hours
-
-        with unittest.mock.patch("wwwmin.operating_hours.datetime") as mockdt:
-            mockdt.now.return_value = frozendt
-            import wwwmin.server
-            import wwwmin.security
-
-            for username, password in user_credentials:
-                wwwmin.security.User.create(username, password)
-
-            wwwmin.server.serve()
-
-    proc = multiprocessing.Process(target=_run_target, args=(config, frozendt))
+    proc = multiprocessing.get_context("spawn").Process(
+        target=_run_target, args=(config, frozendt, user_credentials, close_database)
+    )
     proc.start()
     try:
         yield
