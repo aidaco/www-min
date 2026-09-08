@@ -39,7 +39,8 @@ the website’s intentional closed-hours behavior. Production probes must not su
 
 ## Deployment
 
-Feature-branch PRs are verified before main releases publish a tested private GHCR
-image and deploy it to Gooch. Jumper remains the public reverse proxy. See
+The prepared CI/CD workflow verifies feature-branch PRs before main releases
+publish a tested private GHCR image and deploy it to Gooch. Publication and
+deployment-key enrollment are pending approval; the container migration is live. Jumper remains the public reverse proxy. See
 [the deployment guide](docs/deployment/docker.md) for credentials, persistent
 state, read-only production smoke tests, and code-only rollback.

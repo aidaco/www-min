@@ -2,8 +2,11 @@
 
 `www-min` is the current application for https://aidan.software; the older
 `aidaco/www` repository is retired. Piac previously ran commit `07aa614` as
-`wwwmin.service` on Jumper. The container migration is being prepared on
-`deploy/gooch-container`; see Piac's runbook for the actual cutover status.
+`wwwmin.service` on Jumper. The container migration to Gooch is complete. Changes are committed locally on
+`deploy/gooch-container`; publication to the existing public repository and
+enrollment of its Actions deployment key await explicit approval. Production
+currently uses a tested image transferred through the existing trusted host SSH
+connection. See Piac's runbook for the bootstrap image and retained data copies.
 
 ## Ownership and traffic
 
@@ -68,5 +71,5 @@ For public read-only validation, run `python3 scripts/smoke.py https://aidan.sof
 Routine application changes need a merged PR, not an Ansible run. Infrastructure
 changes use Piac's `playbooks/wwwmin.yml`; its handler reapplies the CD-selected image.
 
-See [Piac's website runbook](../../../../piac/docs/hosts/gooch-wwwmin.md) for
+See [Piac's website runbook](../../../piac/docs/hosts/gooch-wwwmin.md) for
 migration, backup, and rollback procedures (sibling checkouts assumed).
